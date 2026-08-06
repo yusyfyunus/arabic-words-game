@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Первый урок мини-игры для запоминания перевода и написания арабских слов">
+  <meta property="og:title" content="Арабские слова — Урок 1">
+  <meta property="og:description" content="23 слова: перевод, написание и общий повтор">
+  <meta property="og:url" content="https://yusyfyunus.github.io/arabic-words-game/">
+  <meta property="og:image" content="https://yusyfyunus.github.io/arabic-words-game/og.png">
+  <title>Арабские слова — Урок 1</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page-shell">
+    <div class="background-word background-word-one" aria-hidden="true">ع</div>
+    <div class="background-word background-word-two" aria-hidden="true">ق</div>
+    <header class="topbar">
+      <a class="brand" href="#game"><span class="brand-mark">ض</span><span>Арабские слова</span></a>
+      <button class="dictionary-button" id="open-dictionary"><span aria-hidden="true">☰</span> Все слова</button>
+    </header>
+    <section class="hero" id="game">
+      <p class="eyebrow">Урок 1 · 23 слова · твой личный тренажёр</p>
+      <h1>Запомни слово.<br><em>Узнай его с первого взгляда.</em></h1>
+      <p class="intro">Короткие раунды на перевод и написание — по словам с твоих фотографий.</p>
+    </section>
+    <section class="game-card" aria-live="polite">
+      <div class="lesson-switch" aria-label="Выбор урока">
+        <button class="active" id="scope-lesson"><span>Первый урок</span><strong>Урок 1</strong><small>23 слова</small></button>
+        <button id="scope-all"><span>Общий повтор</span><strong>Повторить всё</strong><small>23 слова пройдено</small></button>
+      </div>
+      <div class="mode-switch" aria-label="Режим игры">
+        <button class="active" id="mode-translate"><span aria-hidden="true">↔</span> Перевод</button>
+        <button id="mode-spell"><span aria-hidden="true">✎</span> Написание</button>
+      </div>
+      <div class="game-meta">
+        <div class="progress-label"><span id="question-number">Слово 1 из 23</span><span id="progress-percent">0%</span></div>
+        <div class="progress-track"><span id="progress-bar" style="width:0%"></span></div>
+      </div>
+      <div class="question-block" id="question-block"></div>
+      <footer class="score-row">
+        <div><span class="score-dot score-dot-green"></span>Верно <strong id="score">0</strong></div>
+        <div><span class="score-dot score-dot-gold"></span>Серия <strong id="streak">0</strong></div>
+        <button id="restart">↻ Начать заново</button>
+      </footer>
+    </section>
+    <section class="study-note">
+      <span class="note-number">01</span>
+      <div><p>Подсказка для памяти</p><h2>Огласовки находятся в верхнем ряду клавиатуры.</h2></div>
+      <div class="mini-card"><span dir="rtl" lang="ar">فلق</span><small>Рассвет</small></div>
+    </section>
+    <div class="modal-backdrop" id="dictionary-backdrop" role="presentation" hidden>
+      <section class="dictionary-modal" role="dialog" aria-modal="true" aria-labelledby="dictionary-title">
+        <div class="dictionary-heading">
+          <div><p class="eyebrow">Твой набор</p><h2 id="dictionary-title">Все пройденные слова</h2></div>
+          <button id="close-dictionary" aria-label="Закрыть словарь">×</button>
+        </div>
+        <div class="word-list" id="word-list"></div>
+      </section>
+    </div>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>
