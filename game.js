@@ -29,6 +29,7 @@ let index = 0;
 let score = 0;
 let streak = 0;
 let answered = false;
+let finished = false;
 
 const $ = (id) => document.getElementById(id);
 const activeWords = () => scope === "all" ? WORDS : LESSONS.find((lesson) => lesson.id === scope).words;
@@ -48,7 +49,7 @@ const stripMarks = (value) => value.normalize("NFKD")
   .trim();
 
 function updateMeta() {
-  const progress = ((index + (answered ? 1 : 0)) / deck.length) * 100;
+  const progress = finished ? 100 : ((index + (answered ? 1 : 0)) / deck.length) * 100;
   $("question-number").textContent = `Слово ${index + 1} из ${deck.length}`;
   $("progress-percent").textContent = `${Math.round(progress)}%`;
   $("progress-bar").style.width = `${progress}%`;
@@ -63,7 +64,7 @@ function feedback(correct, current) {
     <div class="feedback-icon" aria-hidden="true">${correct ? "✓" : "↺"}</div>
     <div><strong>${correct ? "Верно!" : "Почти. Запомни ответ:"}</strong>
     <p><span dir="rtl" lang="ar">${current.arabic}</span> — ${current.russian}</p></div>
-    <button id="next-question">${index === deck.length - 1 ? "Новый раунд" : "Дальше →"}</button>`;
+    <button id="next-question">${index === deck.length - 1 ? "Посмотреть результат" : "Дальше →"}</button>`;
   $("question-block").append(box);
   $("next-question").addEventListener("click", next);
 }
@@ -155,11 +156,36 @@ function render() {
   mode === "translate" ? renderTranslate(deck[index]) : renderSpell(deck[index]);
 }
 
+function renderResult() {
+  const percent = Math.round((score / deck.length) * 100);
+  const grade = percent >= 90 ? 5 : percent >= 70 ? 4 : percent >= 50 ? 3 : 2;
+  const message = grade === 5
+    ? "Отлично! Слова уже хорошо запомнились."
+    : grade === 4
+      ? "Очень хорошо! Ещё одно повторение закрепит результат."
+      : grade === 3
+        ? "Хорошее начало. Повтори слова и попробуй ещё раз."
+        : "Не расстраивайся — повторение поможет запомнить слова.";
+  $("question-block").innerHTML = `
+    <div class="result-screen">
+      <p class="eyebrow">Тест завершён</p>
+      <div class="grade-badge grade-${grade}"><small>Оценка</small><strong>${grade}</strong></div>
+      <h2>${message}</h2>
+      <div class="result-stats">
+        <div><strong>${score}<span>/${deck.length}</span></strong><small>правильных ответов</small></div>
+        <div><strong>${percent}%</strong><small>результат теста</small></div>
+        <div><strong>${deck.length - score}</strong><small>слов повторить</small></div>
+      </div>
+      <button class="result-restart" id="result-restart">↻ Пройти ещё раз</button>
+    </div>`;
+  $("result-restart").addEventListener("click", () => reset());
+}
+
 function reset(nextMode = mode, nextScope = scope) {
   mode = nextMode;
   scope = nextScope;
   deck = shuffle(activeWords());
-  index = 0; score = 0; streak = 0; answered = false;
+  index = 0; score = 0; streak = 0; answered = false; finished = false;
   $("mode-translate").classList.toggle("active", mode === "translate");
   $("mode-spell").classList.toggle("active", mode === "spell");
   $("scope-lesson").classList.toggle("active", scope === "lesson-1");
@@ -168,7 +194,12 @@ function reset(nextMode = mode, nextScope = scope) {
 }
 
 function next() {
-  if (index === deck.length - 1) reset();
+  if (index === deck.length - 1) {
+    finished = true;
+    answered = false;
+    updateMeta();
+    renderResult();
+  }
   else { index += 1; render(); }
 }
 

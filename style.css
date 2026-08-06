@@ -404,6 +404,52 @@ button { color: inherit; }
 .feedback-good button { background: var(--forest); }
 .feedback-bad button { background: #923a26; }
 
+.result-screen {
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0 4px;
+  text-align: center;
+}
+
+.result-screen .eyebrow { margin-bottom: 12px; }
+.grade-badge {
+  width: 118px;
+  height: 118px;
+  display: grid;
+  place-content: center;
+  border: 2px solid var(--forest);
+  border-radius: 50%;
+  background: #e7f1e9;
+  color: var(--forest-dark);
+  box-shadow: 0 12px 30px rgba(15, 91, 70, .14);
+}
+
+.grade-badge small { font-size: 10px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+.grade-badge strong { font-family: Georgia, serif; font-size: 56px; line-height: .9; }
+.grade-4 { border-color: #699774; background: #edf3e8; }
+.grade-3 { border-color: var(--gold); background: #f8f0d9; color: #7f621c; }
+.grade-2 { border-color: var(--orange); background: #fae9df; color: #9a4527; }
+.result-screen h2 { max-width: 520px; margin: 20px auto; font-family: Georgia, serif; font-size: 25px; font-weight: 500; line-height: 1.25; }
+
+.result-stats {
+  width: min(580px, 100%);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 22px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.result-stats div { display: grid; gap: 3px; padding: 13px 10px; border-right: 1px solid var(--line); }
+.result-stats div:last-child { border-right: 0; }
+.result-stats strong { font-family: Georgia, serif; font-size: 25px; color: var(--forest); }
+.result-stats strong span { color: rgba(23, 51, 43, .4); font-size: 16px; }
+.result-stats small { color: rgba(23, 51, 43, .55); font-size: 10px; }
+.result-restart { border: 0; border-radius: 11px; background: var(--forest); color: white; padding: 14px 24px; cursor: pointer; font-weight: 800; }
+
 .score-row {
   min-height: 65px;
   display: flex;
@@ -496,6 +542,13 @@ button { color: inherit; }
   .answer-option { min-height: 56px; }
   .feedback { grid-template-columns: auto 1fr; }
   .feedback button { grid-column: 1 / -1; }
+  .result-screen { min-height: 390px; }
+  .result-screen h2 { font-size: 21px; }
+  .grade-badge { width: 102px; height: 102px; }
+  .grade-badge strong { font-size: 48px; }
+  .result-stats div { padding: 12px 4px; }
+  .result-stats strong { font-size: 21px; }
+  .result-stats small { font-size: 9px; }
   .score-row { padding: 13px 20px; gap: 15px; }
   .score-row button { font-size: 0; }
   .score-row button::first-letter { font-size: 20px; }
