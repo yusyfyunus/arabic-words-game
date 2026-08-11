@@ -180,6 +180,7 @@ button { color: inherit; }
 .lesson-switch button.active { border-color: #f5ccae; background: var(--cream); color: rgba(23, 51, 43, .58); }
 .lesson-switch button.active strong { color: var(--forest-dark); }
 .lesson-switch button:hover:not(.active) { background: rgba(255, 255, 255, .11); }
+.lesson-switch button:last-child { grid-column: 1 / -1; min-height: 66px; }
 
 .mode-switch {
   display: grid;

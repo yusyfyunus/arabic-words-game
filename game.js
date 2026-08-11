@@ -11,6 +11,20 @@ const LESSONS = [{
   ["حَسَدَ", "Завидовать"], ["أَحَدٌ", "Один"], ["الصَّمَدُ", "Тот, в Ком все нуждаются"],
   ["وَلَدَ", "Рожать"], ["كُفُوٌ", "Равный"]
   ].map(([arabic, russian]) => ({ arabic, russian }))
+}, {
+  id: "lesson-2",
+  title: "Урок 2",
+  words: [
+  ["ذَاتٌ", "Обладательница"], ["اِمْرَأَةٌ", "Жена, женщина"], ["حَمَّالَةٌ", "Носительница"],
+  ["حَطَبٌ", "Дрова"], ["جِيدٌ", "Шея"], ["حَبْلٌ", "Верёвка"],
+  ["مَسَدٌ", "Пальмовые волокна"], ["جَاءَ", "Приходить"], ["نَصْرٌ", "Помощь, победа"],
+  ["فَتْحٌ", "Открытие"], ["رَأَى", "Видеть"], ["دَخَلَ", "Входить"],
+  ["أَفْوَاجًا", "Толпами"], ["سَبَّحَ", "Славить"], ["حَمْدٌ", "Хвала"],
+  ["اِسْتَغْفَرَ", "Просить прощение"], ["تَوَّابٌ", "Принимающий покаяние"], ["تَبَّ", "Погибать"],
+  ["يَدٌ", "Рука"], ["أَغْنَى", "Обогащать, избавлять, быть заменителем"],
+  ["مَالٌ", "Деньги, богатство, имущество"], ["كَسَبَ", "Зарабатывать"],
+  ["صَلَّى", "Молить, жарить"], ["نَارٌ", "Огонь"], ["لَهَبٌ", "Пламя"]
+  ].map(([arabic, russian]) => ({ arabic, russian }))
 }];
 
 const WORDS = LESSONS.flatMap((lesson) => lesson.words);
@@ -189,6 +203,7 @@ function reset(nextMode = mode, nextScope = scope) {
   $("mode-translate").classList.toggle("active", mode === "translate");
   $("mode-spell").classList.toggle("active", mode === "spell");
   $("scope-lesson").classList.toggle("active", scope === "lesson-1");
+  $("scope-lesson2").classList.toggle("active", scope === "lesson-2");
   $("scope-all").classList.toggle("active", scope === "all");
   render();
 }
@@ -206,13 +221,19 @@ function next() {
 $("mode-translate").addEventListener("click", () => mode !== "translate" && reset("translate"));
 $("mode-spell").addEventListener("click", () => mode !== "spell" && reset("spell"));
 $("scope-lesson").addEventListener("click", () => scope !== "lesson-1" && reset(mode, "lesson-1"));
+$("scope-lesson2").addEventListener("click", () => scope !== "lesson-2" && reset(mode, "lesson-2"));
 $("scope-all").addEventListener("click", () => scope !== "all" && reset(mode, "all"));
 $("restart").addEventListener("click", () => reset());
 
 const backdrop = $("dictionary-backdrop");
-$("word-list").innerHTML = `<div class="lesson-list-label"><span>Урок 1</span><small>23 слова</small></div>` + WORDS.map((word, i) => `
-  <div class="word-row"><span class="word-index">${String(i + 1).padStart(2, "0")}</span>
-  <span class="word-russian">${word.russian}</span><span class="word-arabic" dir="rtl" lang="ar">${word.arabic}</span></div>`).join("");
+let dictionaryOffset = 0;
+$("word-list").innerHTML = LESSONS.map((lesson) => {
+  const rows = lesson.words.map((word, i) => `
+    <div class="word-row"><span class="word-index">${String(dictionaryOffset + i + 1).padStart(2, "0")}</span>
+    <span class="word-russian">${word.russian}</span><span class="word-arabic" dir="rtl" lang="ar">${word.arabic}</span></div>`).join("");
+  dictionaryOffset += lesson.words.length;
+  return `<div class="lesson-list-label"><span>${lesson.title}</span><small>${lesson.words.length} слов</small></div>${rows}`;
+}).join("");
 $("open-dictionary").addEventListener("click", () => { backdrop.hidden = false; });
 $("close-dictionary").addEventListener("click", () => { backdrop.hidden = true; });
 backdrop.addEventListener("click", (event) => { if (event.target === backdrop) backdrop.hidden = true; });
