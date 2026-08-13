@@ -25,6 +25,13 @@ body {
 button, input { font: inherit; }
 button { color: inherit; }
 
+.privacy-page { width: min(760px, calc(100% - 32px)); margin: 0 auto; padding: 70px 0 90px; line-height: 1.65; }
+.privacy-page h1 { margin: 10px 0 28px; color: var(--forest-dark); font-family: Georgia, serif; font-size: clamp(36px, 7vw, 58px); line-height: 1.02; }
+.privacy-page h2 { margin: 30px 0 6px; color: var(--forest); font-family: Georgia, serif; }
+.privacy-page p { color: rgba(23,51,43,.82); }
+.privacy-back { display: inline-block; margin-bottom: 35px; color: var(--forest); font-weight: 750; text-decoration: none; }
+.privacy-date { margin-top: 42px; color: rgba(23,51,43,.55) !important; font-size: 13px; }
+
 .page-shell {
   min-height: 100vh;
   overflow: hidden;
@@ -44,6 +51,7 @@ button { color: inherit; }
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
 }
+
 
 .brand {
   display: inline-flex;
