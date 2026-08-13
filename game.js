@@ -128,10 +128,33 @@ function renderTranslate(current) {
   });
 }
 
-function renderSpell(current, copyMode = false) {
+function renderArabicChoice(current) {
+  const options = shuffle([current, ...shuffle(WORDS.filter((word) => word.arabic !== current.arabic)).slice(0, 3)]);
   $("question-block").innerHTML = `
-    <p class="prompt">${copyMode ? "Посмотри на слово и повтори его написание" : "Переведи с русского и напиши по-арабски"}</p>
-    ${copyMode ? `<div class="arabic-copy-word" dir="rtl" lang="ar">${current.arabic}</div><div class="copy-translation">${current.russian}</div>` : `<div class="russian-word">${current.russian}</div>`}
+    <p class="prompt">Выбери арабское слово</p>
+    <div class="russian-word">${current.russian}</div>
+    <div class="answer-grid">${options.map((word, i) => `
+      <button class="answer-option arabic-option" data-answer="${word.arabic}">
+        <span>${i + 1}</span><b dir="rtl" lang="ar">${word.arabic}</b>
+      </button>`).join("")}</div>`;
+  document.querySelectorAll(".answer-option").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (answered) return;
+      const correct = button.dataset.answer === current.arabic;
+      document.querySelectorAll(".answer-option").forEach((option) => {
+        option.disabled = true;
+        if (option.dataset.answer === current.arabic) option.classList.add("right");
+      });
+      if (!correct) button.classList.add("wrong");
+      grade(correct);
+    });
+  });
+}
+
+function renderSpell(current) {
+  $("question-block").innerHTML = `
+    <p class="prompt">Переведи с русского и напиши по-арабски</p>
+    <div class="russian-word">${current.russian}</div>
     <div class="spell-area">
       <label for="arabic-answer">Твой ответ</label>
       <input id="arabic-answer" dir="rtl" lang="ar" autocomplete="off" autocapitalize="off" placeholder="اكتب هنا">
@@ -187,7 +210,11 @@ function render() {
   }
   if (scope === "hard") {
     const current = deck[index];
-    current.task === "ar-ru" ? renderTranslate(current) : renderSpell(current, current.task === "copy");
+    current.task === "ar-ru"
+      ? renderTranslate(current)
+      : current.task === "ru-ar-choice"
+        ? renderArabicChoice(current)
+        : renderSpell(current);
     return;
   }
   mode === "translate" ? renderTranslate(deck[index]) : renderSpell(deck[index]);
@@ -200,7 +227,7 @@ function saveHardWords() {
 
 function buildHardDeck(words) {
   return [
-    ...shuffle(words).map((word) => ({ ...word, task: "copy" })),
+    ...shuffle(words).map((word) => ({ ...word, task: "ru-ar-choice" })),
     ...shuffle(words).map((word) => ({ ...word, task: "ru-ar" })),
     ...shuffle(words).map((word) => ({ ...word, task: "ar-ru" }))
   ];
@@ -211,7 +238,7 @@ function renderHardSelector() {
     <div class="hard-selector">
       <p class="eyebrow">Свой набор для повторения</p>
       <h2>Выбери трудные слова</h2>
-      <p class="preview-intro">Каждое выбранное слово встретится три раза: повторить написание, перевести с русского на арабский и с арабского на русский.</p>
+      <p class="preview-intro">Каждое выбранное слово встретится три раза: выбрать арабское слово по русскому, написать перевод по-арабски и выбрать перевод на русский.</p>
       <div class="hard-tools"><button type="button" id="select-all-hard">Выбрать все</button><button type="button" id="clear-hard">Очистить</button><strong id="hard-selected-count">Выбрано: ${hardWordIds.size}</strong></div>
       <div class="hard-word-groups">${LESSONS.map((lesson) => `
         <section class="hard-word-group"><h3>${lesson.title}</h3><div class="hard-word-grid">${lesson.words.map((word) => `

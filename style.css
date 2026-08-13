@@ -328,6 +328,16 @@ button { color: inherit; }
   font-size: 12px;
 }
 
+.answer-option.arabic-option {
+  min-height: 76px;
+  justify-content: center;
+  font-family: "Geeza Pro", "Noto Naskh Arabic", serif;
+  font-size: 34px;
+  font-weight: 500;
+}
+
+.answer-option.arabic-option b { font-weight: 500; }
+
 .answer-option.right { border-color: #70a58b; background: #e9f4ec; color: #155a43; }
 .answer-option.wrong { border-color: #d58c78; background: #faece7; color: #9b3d28; }
 .answer-option:disabled { cursor: default; }
