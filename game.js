@@ -43,7 +43,9 @@ let index = 0;
 let score = 0;
 let streak = 0;
 let answered = false;
+let started = false;
 let finished = false;
+let mistakes = [];
 
 const $ = (id) => document.getElementById(id);
 const activeWords = () => scope === "all" ? WORDS : LESSONS.find((lesson) => lesson.id === scope).words;
@@ -63,8 +65,8 @@ const stripMarks = (value) => value.normalize("NFKD")
   .trim();
 
 function updateMeta() {
-  const progress = finished ? 100 : ((index + (answered ? 1 : 0)) / deck.length) * 100;
-  $("question-number").textContent = `Слово ${index + 1} из ${deck.length}`;
+  const progress = !started ? 0 : finished ? 100 : ((index + (answered ? 1 : 0)) / deck.length) * 100;
+  $("question-number").textContent = started ? `Слово ${index + 1} из ${deck.length}` : "Перед началом теста";
   $("progress-percent").textContent = `${Math.round(progress)}%`;
   $("progress-bar").style.width = `${progress}%`;
   $("score").textContent = score;
@@ -86,7 +88,10 @@ function feedback(correct, current) {
 function grade(correct) {
   if (answered) return;
   answered = true;
-  if (correct) { score += 1; streak += 1; } else { streak = 0; }
+  if (correct) { score += 1; streak += 1; } else {
+    streak = 0;
+    if (!mistakes.includes(deck[index])) mistakes.push(deck[index]);
+  }
   updateMeta();
   feedback(correct, deck[index]);
 }
@@ -167,7 +172,31 @@ function renderSpell(current) {
 function render() {
   answered = false;
   updateMeta();
+  if (!started) {
+    renderPreview();
+    return;
+  }
   mode === "translate" ? renderTranslate(deck[index]) : renderSpell(deck[index]);
+}
+
+function renderPreview() {
+  const previewLessons = scope === "all" ? LESSONS : LESSONS.filter((lesson) => lesson.id === scope);
+  const heading = scope === "all" ? "Все слова для повторения" : `${previewLessons[0].title}: слова теста`;
+  $("question-block").innerHTML = `
+    <div class="lesson-preview">
+      <p class="eyebrow">Сначала познакомься со словами</p>
+      <h2>${heading}</h2>
+      <p class="preview-intro">Прочитай арабские слова с огласовками и их перевод. Когда будешь готова — начинай тест.</p>
+      <div class="preview-groups">${previewLessons.map((lesson) => `
+        <section class="preview-group">
+          ${scope === "all" ? `<h3>${lesson.title} · ${lesson.words.length} слов</h3>` : ""}
+          <div class="preview-word-grid">${lesson.words.map((word) => `
+            <div class="preview-word"><span dir="rtl" lang="ar">${word.arabic}</span><small>${word.russian}</small></div>`).join("")}
+          </div>
+        </section>`).join("")}</div>
+      <button class="start-test-button" id="start-test">Начать тест →</button>
+    </div>`;
+  $("start-test").addEventListener("click", () => { started = true; render(); });
 }
 
 function renderResult() {
@@ -190,6 +219,11 @@ function renderResult() {
         <div><strong>${percent}%</strong><small>результат теста</small></div>
         <div><strong>${deck.length - score}</strong><small>слов повторить</small></div>
       </div>
+      <div class="mistakes-review ${mistakes.length ? "has-mistakes" : "no-mistakes"}">
+        <h3>${mistakes.length ? "Слова, в которых были ошибки" : "Без ошибок — великолепно!"}</h3>
+        ${mistakes.length ? `<div class="mistake-list">${mistakes.map((word) => `
+          <div class="mistake-word"><span dir="rtl" lang="ar">${word.arabic}</span><small>${word.russian}</small></div>`).join("")}</div>` : ""}
+      </div>
       <button class="result-restart" id="result-restart">↻ Пройти ещё раз</button>
     </div>`;
   $("result-restart").addEventListener("click", () => reset());
@@ -199,7 +233,7 @@ function reset(nextMode = mode, nextScope = scope) {
   mode = nextMode;
   scope = nextScope;
   deck = shuffle(activeWords());
-  index = 0; score = 0; streak = 0; answered = false; finished = false;
+  index = 0; score = 0; streak = 0; answered = false; started = false; finished = false; mistakes = [];
   $("mode-translate").classList.toggle("active", mode === "translate");
   $("mode-spell").classList.toggle("active", mode === "spell");
   $("scope-lesson").classList.toggle("active", scope === "lesson-1");
