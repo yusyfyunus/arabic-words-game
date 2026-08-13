@@ -46,9 +46,17 @@ let answered = false;
 let started = false;
 let finished = false;
 let mistakes = [];
+let hardWordIds = new Set();
+
+try {
+  hardWordIds = new Set(JSON.parse(localStorage.getItem("kalimat-hard-words") || "[]"));
+} catch (_) {
+  hardWordIds = new Set();
+}
 
 const $ = (id) => document.getElementById(id);
-const activeWords = () => scope === "all" ? WORDS : LESSONS.find((lesson) => lesson.id === scope).words;
+const selectedHardWords = () => WORDS.filter((word) => hardWordIds.has(word.arabic));
+const activeWords = () => scope === "all" ? WORDS : scope === "hard" ? selectedHardWords() : LESSONS.find((lesson) => lesson.id === scope).words;
 const shuffle = (values) => {
   const copy = [...values];
   for (let i = copy.length - 1; i > 0; i -= 1) {
@@ -66,7 +74,7 @@ const stripMarks = (value) => value.normalize("NFKD")
 
 function updateMeta() {
   const progress = !started ? 0 : finished ? 100 : ((index + (answered ? 1 : 0)) / deck.length) * 100;
-  $("question-number").textContent = started ? `Слово ${index + 1} из ${deck.length}` : "Перед началом теста";
+  $("question-number").textContent = started ? `Задание ${index + 1} из ${deck.length}` : scope === "hard" ? "Выбери трудные слова" : "Перед началом теста";
   $("progress-percent").textContent = `${Math.round(progress)}%`;
   $("progress-bar").style.width = `${progress}%`;
   $("score").textContent = score;
@@ -90,14 +98,15 @@ function grade(correct) {
   answered = true;
   if (correct) { score += 1; streak += 1; } else {
     streak = 0;
-    if (!mistakes.includes(deck[index])) mistakes.push(deck[index]);
+    if (!mistakes.some((word) => word.arabic === deck[index].arabic)) mistakes.push(deck[index]);
   }
   updateMeta();
   feedback(correct, deck[index]);
 }
 
 function renderTranslate(current) {
-  const options = shuffle([current, ...shuffle(activeWords().filter((word) => word !== current)).slice(0, 3)]);
+  const optionPool = scope === "hard" ? WORDS : activeWords();
+  const options = shuffle([current, ...shuffle(optionPool.filter((word) => word.arabic !== current.arabic)).slice(0, 3)]);
   $("question-block").innerHTML = `
     <p class="prompt">Выбери правильный перевод</p>
     <div class="arabic-word" dir="rtl" lang="ar">${current.arabic}</div>
@@ -119,10 +128,10 @@ function renderTranslate(current) {
   });
 }
 
-function renderSpell(current) {
+function renderSpell(current, copyMode = false) {
   $("question-block").innerHTML = `
-    <p class="prompt">Напиши слово по-арабски</p>
-    <div class="russian-word">${current.russian}</div>
+    <p class="prompt">${copyMode ? "Посмотри на слово и повтори его написание" : "Переведи с русского и напиши по-арабски"}</p>
+    ${copyMode ? `<div class="arabic-copy-word" dir="rtl" lang="ar">${current.arabic}</div><div class="copy-translation">${current.russian}</div>` : `<div class="russian-word">${current.russian}</div>`}
     <div class="spell-area">
       <label for="arabic-answer">Твой ответ</label>
       <input id="arabic-answer" dir="rtl" lang="ar" autocomplete="off" autocapitalize="off" placeholder="اكتب هنا">
@@ -173,10 +182,74 @@ function render() {
   answered = false;
   updateMeta();
   if (!started) {
-    renderPreview();
+    scope === "hard" ? renderHardSelector() : renderPreview();
+    return;
+  }
+  if (scope === "hard") {
+    const current = deck[index];
+    current.task === "ar-ru" ? renderTranslate(current) : renderSpell(current, current.task === "copy");
     return;
   }
   mode === "translate" ? renderTranslate(deck[index]) : renderSpell(deck[index]);
+}
+
+function saveHardWords() {
+  localStorage.setItem("kalimat-hard-words", JSON.stringify([...hardWordIds]));
+  $("scope-hard-count").textContent = `${hardWordIds.size} выбрано`;
+}
+
+function buildHardDeck(words) {
+  return [
+    ...shuffle(words).map((word) => ({ ...word, task: "copy" })),
+    ...shuffle(words).map((word) => ({ ...word, task: "ru-ar" })),
+    ...shuffle(words).map((word) => ({ ...word, task: "ar-ru" }))
+  ];
+}
+
+function renderHardSelector() {
+  $("question-block").innerHTML = `
+    <div class="hard-selector">
+      <p class="eyebrow">Свой набор для повторения</p>
+      <h2>Выбери трудные слова</h2>
+      <p class="preview-intro">Каждое выбранное слово встретится три раза: повторить написание, перевести с русского на арабский и с арабского на русский.</p>
+      <div class="hard-tools"><button type="button" id="select-all-hard">Выбрать все</button><button type="button" id="clear-hard">Очистить</button><strong id="hard-selected-count">Выбрано: ${hardWordIds.size}</strong></div>
+      <div class="hard-word-groups">${LESSONS.map((lesson) => `
+        <section class="hard-word-group"><h3>${lesson.title}</h3><div class="hard-word-grid">${lesson.words.map((word) => `
+          <label class="hard-word ${hardWordIds.has(word.arabic) ? "selected" : ""}">
+            <input type="checkbox" value="${word.arabic}" ${hardWordIds.has(word.arabic) ? "checked" : ""}>
+            <span dir="rtl" lang="ar">${word.arabic}</span><small>${word.russian}</small><i aria-hidden="true">✓</i>
+          </label>`).join("")}</div></section>`).join("")}</div>
+      <button class="start-test-button" id="start-hard-test" ${hardWordIds.size ? "" : "disabled"}>Начать тест · <span>${hardWordIds.size * 3}</span> заданий →</button>
+    </div>`;
+
+  const updateSelection = () => {
+    saveHardWords();
+    $("hard-selected-count").textContent = `Выбрано: ${hardWordIds.size}`;
+    $("start-hard-test").disabled = hardWordIds.size === 0;
+    $("start-hard-test").innerHTML = `Начать тест · <span>${hardWordIds.size * 3}</span> заданий →`;
+  };
+  document.querySelectorAll(".hard-word input").forEach((input) => input.addEventListener("change", () => {
+    input.checked ? hardWordIds.add(input.value) : hardWordIds.delete(input.value);
+    input.closest(".hard-word").classList.toggle("selected", input.checked);
+    updateSelection();
+  }));
+  $("select-all-hard").addEventListener("click", () => {
+    WORDS.forEach((word) => hardWordIds.add(word.arabic));
+    renderHardSelector();
+    saveHardWords();
+  });
+  $("clear-hard").addEventListener("click", () => {
+    hardWordIds.clear();
+    renderHardSelector();
+    saveHardWords();
+  });
+  $("start-hard-test").addEventListener("click", () => {
+    const words = selectedHardWords();
+    if (!words.length) return;
+    deck = buildHardDeck(words);
+    index = 0; score = 0; streak = 0; answered = false; mistakes = []; finished = false; started = true;
+    render();
+  });
 }
 
 function renderPreview() {
@@ -217,7 +290,7 @@ function renderResult() {
       <div class="result-stats">
         <div><strong>${score}<span>/${deck.length}</span></strong><small>правильных ответов</small></div>
         <div><strong>${percent}%</strong><small>результат теста</small></div>
-        <div><strong>${deck.length - score}</strong><small>слов повторить</small></div>
+        <div><strong>${mistakes.length}</strong><small>слов повторить</small></div>
       </div>
       <div class="mistakes-review ${mistakes.length ? "has-mistakes" : "no-mistakes"}">
         <h3>${mistakes.length ? "Слова, в которых были ошибки" : "Без ошибок — великолепно!"}</h3>
@@ -232,13 +305,15 @@ function renderResult() {
 function reset(nextMode = mode, nextScope = scope) {
   mode = nextMode;
   scope = nextScope;
-  deck = shuffle(activeWords());
+  deck = scope === "hard" ? [] : shuffle(activeWords());
   index = 0; score = 0; streak = 0; answered = false; started = false; finished = false; mistakes = [];
   $("mode-translate").classList.toggle("active", mode === "translate");
   $("mode-spell").classList.toggle("active", mode === "spell");
   $("scope-lesson").classList.toggle("active", scope === "lesson-1");
   $("scope-lesson2").classList.toggle("active", scope === "lesson-2");
   $("scope-all").classList.toggle("active", scope === "all");
+  $("scope-hard").classList.toggle("active", scope === "hard");
+  $("mode-translate").parentElement.hidden = scope === "hard";
   render();
 }
 
@@ -257,6 +332,7 @@ $("mode-spell").addEventListener("click", () => mode !== "spell" && reset("spell
 $("scope-lesson").addEventListener("click", () => scope !== "lesson-1" && reset(mode, "lesson-1"));
 $("scope-lesson2").addEventListener("click", () => scope !== "lesson-2" && reset(mode, "lesson-2"));
 $("scope-all").addEventListener("click", () => scope !== "all" && reset(mode, "all"));
+$("scope-hard").addEventListener("click", () => scope !== "hard" && reset(mode, "hard"));
 $("restart").addEventListener("click", () => reset());
 
 const backdrop = $("dictionary-backdrop");
@@ -273,4 +349,5 @@ $("close-dictionary").addEventListener("click", () => { backdrop.hidden = true; 
 backdrop.addEventListener("click", (event) => { if (event.target === backdrop) backdrop.hidden = true; });
 document.addEventListener("keydown", (event) => { if (event.key === "Escape") backdrop.hidden = true; });
 
+saveHardWords();
 reset();
