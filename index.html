@@ -3,19 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Мини-игра с 57 арабскими словами: перевод, написание и общий повтор">
-  <meta property="og:title" content="Арабские слова — 3 урока">
-  <meta property="og:description" content="57 слов: перевод, написание и общий повтор">
+  <meta name="description" content="Тренажёр арабских слов и переводов аятов 30-го джуза">
+  <meta property="og:title" content="Арабский тренажёр">
+  <meta property="og:description" content="Арабские слова и перевод аятов 30-го джуза">
   <meta property="og:url" content="https://yusyfyunus.github.io/arabic-words-game/">
   <meta property="og:image" content="https://yusyfyunus.github.io/arabic-words-game/og.png">
-  <title>Арабские слова — 3 урока</title>
+  <title>Арабский тренажёр</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="page-shell">
+  <main class="portal-shell" id="portal-home">
+    <div class="portal-ornament portal-ornament-one" aria-hidden="true">ق</div>
+    <div class="portal-ornament portal-ornament-two" aria-hidden="true">ن</div>
+    <header class="portal-header">
+      <a class="brand" href="#"><span class="brand-mark">ض</span><span>Арабский тренажёр</span></a>
+    </header>
+    <section class="portal-hero">
+      <p class="eyebrow">Выбери, что будем учить</p>
+      <h1>Два пути.<br><em>Одна цель — понимать.</em></h1>
+      <p>Слова из сур или перевод каждого аята 30-го джуза.</p>
+    </section>
+    <section class="project-choice-grid">
+      <button class="project-choice words-choice" data-open-project="words">
+        <span class="project-number">01</span><span class="project-arabic" lang="ar" dir="rtl">كَلِمَاتٌ</span>
+        <small>Учим слова из Корана</small><strong>Арабские слова</strong>
+        <p>Перевод, написание, огласовки и трудные слова.</p><i>Открыть тренажёр →</i>
+      </button>
+      <button class="project-choice ayahs-choice" data-open-project="ayahs">
+        <span class="project-number">02</span><span class="project-arabic" lang="ar" dir="rtl">آيَاتٌ</span>
+        <small>Учим перевод аятов</small><strong>30-й джуз</strong>
+        <p>37 сур · 564 аята · перевод «Калям Шариф».</p><i>Выбрать суру →</i>
+      </button>
+    </section>
+  </main>
+
+  <main class="page-shell" id="words-app" hidden>
     <div class="background-word background-word-one" aria-hidden="true">ع</div>
     <div class="background-word background-word-two" aria-hidden="true">ق</div>
     <header class="topbar">
+      <button class="back-project" data-open-project="home">← Разделы</button>
       <a class="brand" href="#game"><span class="brand-mark">ض</span><span>Арабские слова</span></a>
       <button class="dictionary-button" id="open-dictionary"><span aria-hidden="true">☰</span> Все слова</button>
     </header>
@@ -62,6 +88,50 @@
       </section>
     </div>
   </main>
+
+  <main class="ayah-shell" id="ayah-app" hidden>
+    <header class="topbar ayah-topbar">
+      <button class="back-project" data-open-project="home">← Разделы</button>
+      <a class="brand" href="#ayah-start"><span class="brand-mark ayah-mark">آ</span><span>Перевод аятов</span></a>
+      <span class="juz-pill">30-й джуз</span>
+    </header>
+    <section class="ayah-hero" id="ayah-start">
+      <p class="eyebrow">Калям Шариф · перевод смыслов</p>
+      <h1>Выбери суру<br><em>и проверь себя.</em></h1>
+      <p>Каждый аят встретится два раза: сначала в одном направлении, затем наоборот.</p>
+    </section>
+    <section class="ayah-card">
+      <div id="ayah-setup">
+        <div class="ayah-tabs" role="tablist">
+          <button class="active" id="tab-one-surah" role="tab">Выбрать суру</button>
+          <button id="tab-custom-test" role="tab">Создать тест</button>
+        </div>
+        <div id="one-surah-panel">
+          <div class="ayah-setup-heading"><div><p class="eyebrow">37 сур</p><h2>Суры 30-го джуза</h2></div><p>Нажми на суру, затем начни тест.</p></div>
+          <div class="surah-grid" id="surah-grid"></div>
+          <div class="sticky-start"><div><small>Выбрано</small><strong id="single-selection-label">Сура не выбрана</strong></div><button id="start-single-surah" disabled>Начать тест</button></div>
+        </div>
+        <div id="custom-test-panel" hidden>
+          <div class="ayah-setup-heading"><div><p class="eyebrow">Свой набор</p><h2>Создать тест</h2></div><p>Выбери любые суры. Аяты будут перемешаны.</p></div>
+          <div class="custom-toolbar"><button id="select-all-surahs">Выбрать все</button><button id="clear-surahs">Очистить</button><strong id="custom-selection-count">0 сур · 0 заданий</strong></div>
+          <div class="surah-grid custom-surah-grid" id="custom-surah-grid"></div>
+          <div class="sticky-start"><div><small>В тесте</small><strong id="custom-start-label">Выбери хотя бы одну суру</strong></div><button id="start-custom-test" disabled>Начать тест</button></div>
+        </div>
+      </div>
+      <div id="ayah-test" hidden>
+        <div class="ayah-test-head">
+          <button id="exit-ayah-test">← К выбору сур</button>
+          <div><span id="ayah-progress-label">Задание 1</span><strong id="ayah-score-label">Верно 0</strong></div>
+          <div class="progress-track"><span id="ayah-progress-bar"></span></div>
+        </div>
+        <div class="ayah-question" id="ayah-question"></div>
+      </div>
+      <div id="ayah-result" hidden></div>
+    </section>
+    <footer class="ayah-source">Арабский текст: <a href="https://tanzil.net" target="_blank" rel="noopener">Tanzil Project</a>. Перевод смыслов: «Калям Шариф», ДУМ Республики Татарстан.</footer>
+  </main>
+  <script src="juz30-data.js"></script>
   <script src="game.js"></script>
+  <script src="ayah-game.js"></script>
 </body>
 </html>
