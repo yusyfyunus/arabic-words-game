@@ -5,7 +5,11 @@ const portalViews = {
 };
 
 function openProject(name) {
-  Object.entries(portalViews).forEach(([key, element]) => { element.hidden = key !== name; });
+  const viewName = name === "full-juz" ? "ayahs" : name;
+  Object.entries(portalViews).forEach(([key, element]) => { element.hidden = key !== viewName; });
+  if (name === "full-juz") {
+    startAyahTest(JUZ30_SURAHS, "full-juz");
+  }
   if (name === "ayahs") {
     document.getElementById("ayah-test").hidden = true;
     document.getElementById("ayah-result").hidden = true;
@@ -161,6 +165,7 @@ function startAyahTest(surahs, source) {
   ayahState.score = 0;
   ayahState.errors = [];
   ayahState.source = source;
+  ayahElement("exit-ayah-test").textContent = source === "full-juz" ? "← К разделам" : "← К выбору сур";
   ayahElement("ayah-setup").hidden = true;
   ayahElement("ayah-result").hidden = true;
   ayahElement("ayah-test").hidden = false;
@@ -308,7 +313,7 @@ function renderAyahResult() {
     <h2>${percent >= 90 ? "Отличный результат!" : percent >= 70 ? "Очень хорошо!" : "Продолжай повторять"}</h2>
     <p>${ayahState.errors.length ? `Ошибок: ${ayahState.errors.length}. Ниже показаны задания, которые стоит повторить.` : "Все ответы верные — великолепно!"}</p>
     ${ayahState.errors.length ? `<section class="ayah-error-review"><h3>Задания с ошибками</h3><div class="ayah-error-list">${ayahState.errors.map((error, index) => errorMarkup(error, index)).join("")}</div></section>` : ""}
-    <div class="result-actions"><button id="repeat-ayah-test">↻ Пройти ещё раз</button><button id="choose-other-surah">Выбрать другие суры</button></div>
+    <div class="result-actions"><button id="repeat-ayah-test">↻ Пройти ещё раз</button><button id="choose-other-surah">${ayahState.source === "full-juz" ? "Вернуться в разделы" : "Выбрать другие суры"}</button></div>
   </div>`;
   ayahElement("repeat-ayah-test").addEventListener("click", () => startAyahTest(ayahState.selectedSurahs, ayahState.source));
   ayahElement("choose-other-surah").addEventListener("click", returnToAyahSetup);
@@ -341,6 +346,10 @@ function errorMarkup(error, index) {
 }
 
 function returnToAyahSetup() {
+  if (ayahState.source === "full-juz") {
+    openProject("home");
+    return;
+  }
   ayahElement("ayah-test").hidden = true;
   ayahElement("ayah-result").hidden = true;
   ayahElement("ayah-setup").hidden = false;

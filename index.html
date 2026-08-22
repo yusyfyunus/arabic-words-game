@@ -9,7 +9,7 @@
   <meta property="og:url" content="https://yusyfyunus.github.io/arabic-words-game/">
   <meta property="og:image" content="https://yusyfyunus.github.io/arabic-words-game/og.png">
   <title>Арабский тренажёр</title>
-  <link rel="stylesheet" href="style.css?v=20260822-1">
+  <link rel="stylesheet" href="style.css?v=20260822-2">
 </head>
 <body>
   <main class="portal-shell" id="portal-home">
@@ -20,8 +20,8 @@
     </header>
     <section class="portal-hero">
       <p class="eyebrow">Выбери, что будем учить</p>
-      <h1>Два пути.<br><em>Одна цель — понимать.</em></h1>
-      <p>Слова из сур или перевод каждого аята 30-го джуза.</p>
+      <h1>Три пути.<br><em>Одна цель — понимать.</em></h1>
+      <p>Слова из сур, перевод отдельных сур или общий тест по всему 30-му джузу.</p>
     </section>
     <section class="project-choice-grid">
       <button class="project-choice words-choice" data-open-project="words">
@@ -33,6 +33,11 @@
         <span class="project-number">02</span><span class="project-arabic" lang="ar" dir="rtl">آيَاتٌ</span>
         <small>Учим перевод аятов</small><strong>30-й джуз</strong>
         <p>37 сур · 564 аята · перевод «Калям Шариф».</p><i>Выбрать суру →</i>
+      </button>
+      <button class="project-choice full-juz-choice" data-open-project="full-juz">
+        <span class="project-number">03</span><span class="project-arabic" lang="ar" dir="rtl">جُزْءُ عَمَّ</span>
+        <small>Общий тест по всем сурам</small><strong>Весь 30-й джуз</strong>
+        <p>37 сур · 564 аята · оба направления · 1202 задания.</p><i>Начать общий тест →</i>
       </button>
     </section>
   </main>
@@ -131,7 +136,7 @@
     <footer class="ayah-source">Арабский текст: <a href="https://tanzil.net" target="_blank" rel="noopener">Tanzil Project</a>. Перевод смыслов: «Калям Шариф», ДУМ Республики Татарстан.</footer>
   </main>
   <script src="juz30-data.js"></script>
-  <script src="game.js"></script>
-  <script src="ayah-game.js"></script>
+  <script src="game.js?v=20260822-1"></script>
+  <script src="ayah-game.js?v=20260822-1"></script>
 </body>
 </html>

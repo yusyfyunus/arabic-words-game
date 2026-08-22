@@ -669,21 +669,26 @@ button { color: inherit; }
 .portal-ornament { position: absolute; color: rgba(15,91,70,.055); font-family: "Geeza Pro", "Noto Naskh Arabic", serif; font-size: 340px; line-height: 1; pointer-events: none; }
 .portal-ornament-one { top: 80px; left: -30px; transform: rotate(8deg); }
 .portal-ornament-two { right: -20px; bottom: 15px; color: rgba(230,120,60,.07); transform: rotate(-8deg); }
-.project-choice-grid { position: relative; z-index: 2; width: min(980px, 100%); margin: 0 auto; display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
+.project-choice-grid { position: relative; z-index: 2; width: min(1180px, 100%); margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
 .project-choice { position: relative; min-height: 340px; overflow: hidden; padding: 32px; border: 1px solid rgba(23,51,43,.11); border-radius: 24px; background: var(--cream); box-shadow: 0 20px 60px rgba(45,56,42,.1); text-align: left; cursor: pointer; transition: transform 180ms ease, box-shadow 180ms ease; }
 .project-choice:hover { transform: translateY(-5px); box-shadow: 0 28px 70px rgba(45,56,42,.16); }
 .project-choice::after { content: ""; position: absolute; right: -70px; bottom: -90px; width: 250px; height: 250px; border-radius: 50%; background: rgba(15,91,70,.07); }
 .ayahs-choice { background: var(--forest-dark); color: white; }
 .ayahs-choice::after { background: rgba(255,255,255,.07); }
+.full-juz-choice { background: #8f432b; color: white; }
+.full-juz-choice::after { background: rgba(255,255,255,.08); }
 .project-number { position: absolute; top: 28px; right: 30px; color: var(--orange); font-family: Georgia, serif; font-size: 18px; font-style: italic; }
 .project-arabic { display: block; margin-bottom: 26px; color: var(--forest); font-family: "Geeza Pro", "Noto Naskh Arabic", serif; font-size: 62px; line-height: 1; text-align: left; }
 .ayahs-choice .project-arabic { color: #f4c7a8; }
+.full-juz-choice .project-arabic { color: #ffe2c8; }
 .project-choice small { display: block; margin-bottom: 7px; color: var(--orange); font-size: 10px; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
 .project-choice strong { display: block; font-family: Georgia, serif; font-size: 34px; font-weight: 500; }
 .project-choice p { max-width: 320px; margin: 14px 0 29px; color: rgba(23,51,43,.64); line-height: 1.55; }
 .ayahs-choice p { color: rgba(255,255,255,.67); }
+.full-juz-choice p { color: rgba(255,255,255,.7); }
 .project-choice i { position: relative; z-index: 1; color: var(--forest); font-size: 13px; font-style: normal; font-weight: 850; }
 .ayahs-choice i { color: #f4c7a8; }
+.full-juz-choice i { color: #ffe2c8; }
 .back-project { border: 0; background: transparent; color: var(--forest); cursor: pointer; font-size: 12px; font-weight: 850; }
 .page-shell .topbar { display: grid; grid-template-columns: 1fr auto 1fr; gap: 15px; }
 .page-shell .topbar .back-project { justify-self: start; }

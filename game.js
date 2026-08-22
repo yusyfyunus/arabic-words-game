@@ -118,10 +118,15 @@ function renderTranslate(current) {
   $("question-block").innerHTML = `
     <p class="prompt">Выбери правильный перевод</p>
     <div class="arabic-word" dir="rtl" lang="ar">${current.arabic}</div>
-    <div class="answer-grid">${options.map((word, i) => `
+    <button class="reveal-answers" id="reveal-word-answers">Показать варианты ответов</button>
+    <div class="answer-grid" id="word-answer-grid" hidden>${options.map((word, i) => `
       <button class="answer-option" data-answer="${word.russian.replaceAll('"', '&quot;')}">
         <span>${i + 1}</span>${word.russian}
       </button>`).join("")}</div>`;
+  $("reveal-word-answers").addEventListener("click", () => {
+    $("reveal-word-answers").hidden = true;
+    $("word-answer-grid").hidden = false;
+  });
   document.querySelectorAll(".answer-option").forEach((button) => {
     button.addEventListener("click", () => {
       if (answered) return;
@@ -141,10 +146,15 @@ function renderArabicChoice(current) {
   $("question-block").innerHTML = `
     <p class="prompt">Выбери арабское слово</p>
     <div class="russian-word">${current.russian}</div>
-    <div class="answer-grid">${options.map((word, i) => `
+    <button class="reveal-answers" id="reveal-word-answers">Показать варианты ответов</button>
+    <div class="answer-grid" id="word-answer-grid" hidden>${options.map((word, i) => `
       <button class="answer-option arabic-option" data-answer="${word.arabic}">
         <span>${i + 1}</span><b dir="rtl" lang="ar">${word.arabic}</b>
       </button>`).join("")}</div>`;
+  $("reveal-word-answers").addEventListener("click", () => {
+    $("reveal-word-answers").hidden = true;
+    $("word-answer-grid").hidden = false;
+  });
   document.querySelectorAll(".answer-option").forEach((button) => {
     button.addEventListener("click", () => {
       if (answered) return;
@@ -225,7 +235,11 @@ function render() {
         : renderSpell(current);
     return;
   }
-  mode === "translate" ? renderTranslate(deck[index]) : renderSpell(deck[index]);
+  if (mode === "translate") {
+    deck[index].task === "ru-ar-choice" ? renderArabicChoice(deck[index]) : renderTranslate(deck[index]);
+  } else {
+    renderSpell(deck[index]);
+  }
 }
 
 function saveHardWords() {
@@ -239,6 +253,13 @@ function buildHardDeck(words) {
     ...shuffle(words).map((word) => ({ ...word, task: "ru-ar" })),
     ...shuffle(words).map((word) => ({ ...word, task: "ar-ru" }))
   ];
+}
+
+function buildTranslateDeck(words) {
+  return shuffle([
+    ...words.map((word) => ({ ...word, task: "ar-ru" })),
+    ...words.map((word) => ({ ...word, task: "ru-ar-choice" }))
+  ]);
 }
 
 function renderHardSelector() {
@@ -340,7 +361,11 @@ function renderResult() {
 function reset(nextMode = mode, nextScope = scope) {
   mode = nextMode;
   scope = nextScope;
-  deck = scope === "hard" ? [] : shuffle(activeWords());
+  deck = scope === "hard"
+    ? []
+    : mode === "translate"
+      ? buildTranslateDeck(activeWords())
+      : shuffle(activeWords());
   index = 0; score = 0; streak = 0; answered = false; started = false; finished = false; mistakes = [];
   $("mode-translate").classList.toggle("active", mode === "translate");
   $("mode-spell").classList.toggle("active", mode === "spell");
