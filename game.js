@@ -63,6 +63,45 @@ try {
 }
 
 const $ = (id) => document.getElementById(id);
+let answerAudioContext = null;
+
+function playAnswerSound(correct) {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return;
+
+  try {
+    answerAudioContext ||= new AudioContextClass();
+    const play = () => {
+      const now = answerAudioContext.currentTime;
+      const notes = correct ? [523.25, 659.25, 783.99] : [220, 174.61];
+
+      notes.forEach((frequency, noteIndex) => {
+        const start = now + noteIndex * (correct ? 0.075 : 0.11);
+        const duration = correct ? 0.2 : 0.24;
+        const oscillator = answerAudioContext.createOscillator();
+        const gain = answerAudioContext.createGain();
+
+        oscillator.type = correct ? "sine" : "triangle";
+        oscillator.frequency.setValueAtTime(frequency, start);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(correct ? 0.12 : 0.1, start + 0.018);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+        oscillator.connect(gain);
+        gain.connect(answerAudioContext.destination);
+        oscillator.start(start);
+        oscillator.stop(start + duration + 0.02);
+      });
+    };
+
+    if (answerAudioContext.state === "suspended") {
+      answerAudioContext.resume().then(play).catch(() => {});
+    } else {
+      play();
+    }
+  } catch (_) {}
+}
+
+window.playAnswerSound = playAnswerSound;
 const selectedHardWords = () => WORDS.filter((word) => hardWordIds.has(word.arabic));
 const activeWords = () => scope === "all" ? WORDS : scope === "hard" ? selectedHardWords() : LESSONS.find((lesson) => lesson.id === scope).words;
 const shuffle = (values) => {
@@ -104,6 +143,7 @@ function feedback(correct, current) {
 function grade(correct) {
   if (answered) return;
   answered = true;
+  playAnswerSound(correct);
   if (correct) { score += 1; streak += 1; } else {
     streak = 0;
     if (!mistakes.some((word) => word.arabic === deck[index].arabic)) mistakes.push(deck[index]);

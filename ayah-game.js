@@ -261,6 +261,7 @@ function renderAyahQuestion() {
       ? chosen === surahConfig.correctValue
       : chosen.surahNumber === current.surahNumber && chosen.number === current.number;
     ayahState.answered = true;
+    if (typeof window.playAnswerSound === "function") window.playAnswerSound(correct);
     if (correct) ayahState.score += 1;
     else ayahState.errors.push({ ...current, chosen: isSurahQuestion ? chosen : chosen[optionKey] });
 
