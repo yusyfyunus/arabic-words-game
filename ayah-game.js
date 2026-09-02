@@ -1,7 +1,8 @@
 const portalViews = {
   home: document.getElementById("portal-home"),
   words: document.getElementById("words-app"),
-  ayahs: document.getElementById("ayah-app")
+  ayahs: document.getElementById("ayah-app"),
+  tafsir: document.getElementById("tafsir-app")
 };
 
 function openProject(name) {

@@ -9,7 +9,7 @@
   <meta property="og:url" content="https://yusyfyunus.github.io/arabic-words-game/">
   <meta property="og:image" content="https://yusyfyunus.github.io/arabic-words-game/og.png">
   <title>Арабский тренажёр</title>
-  <link rel="stylesheet" href="style.css?v=20260822-2">
+  <link rel="stylesheet" href="style.css?v=20260827-2">
 </head>
 <body>
   <main class="portal-shell" id="portal-home">
@@ -20,8 +20,8 @@
     </header>
     <section class="portal-hero">
       <p class="eyebrow">Выбери, что будем учить</p>
-      <h1>Три пути.<br><em>Одна цель — понимать.</em></h1>
-      <p>Слова из сур, перевод отдельных сур или общий тест по всему 30-му джузу.</p>
+      <h1>Четыре пути.<br><em>Одна цель — понимать.</em></h1>
+      <p>Слова из сур, перевод аятов, общий тест или закрепление тафсира.</p>
     </section>
     <section class="project-choice-grid">
       <button class="project-choice words-choice" data-open-project="words">
@@ -39,6 +39,11 @@
         <small>Общий тест по всем сурам</small><strong>Весь 30-й джуз</strong>
         <p>37 сур · 564 аята · оба направления · 1202 задания.</p><i>Начать общий тест →</i>
       </button>
+      <button class="project-choice tafsir-choice" data-open-project="tafsir">
+        <span class="project-number">04</span><span class="project-arabic" lang="ar" dir="rtl">تَفْسِيرٌ</span>
+        <small>Понимаем смысл глубже</small><strong>Закрепляем тафсир</strong>
+        <p>Пробная версия: 9 коротких сур с историей ниспослания и проверкой источников.</p><i>Изучить девять сур →</i>
+      </button>
     </section>
   </main>
 
@@ -51,7 +56,7 @@
       <button class="dictionary-button" id="open-dictionary"><span aria-hidden="true">☰</span> Все слова</button>
     </header>
     <section class="hero" id="game">
-      <p class="eyebrow">4 урока · 81 слово · твой личный тренажёр</p>
+      <p class="eyebrow">5 уроков · 104 слова · твой личный тренажёр</p>
       <h1>Запомни слово.<br><em>Узнай его с первого взгляда.</em></h1>
       <p class="intro">Короткие раунды на перевод и написание — по словам с твоих фотографий.</p>
     </section>
@@ -61,7 +66,8 @@
         <button id="scope-lesson2"><span>Второй урок</span><strong>Урок 2</strong><small>25 слов</small></button>
         <button id="scope-lesson3"><span>Третий урок</span><strong>Урок 3</strong><small>9 слов</small></button>
         <button id="scope-lesson4"><span>Четвёртый урок</span><strong>Урок 4</strong><small>24 слова</small></button>
-        <button id="scope-all"><span>Общий повтор</span><strong>Повторить всё</strong><small>81 слово пройдено</small></button>
+        <button id="scope-lesson5"><span>Пятый урок</span><strong>Урок 5</strong><small>23 слова</small></button>
+        <button id="scope-all"><span>Общий повтор</span><strong>Повторить всё</strong><small>104 слова пройдено</small></button>
         <button id="scope-hard"><span>Личный тест</span><strong>Трудные слова</strong><small id="scope-hard-count">0 выбрано</small></button>
       </div>
       <div class="mode-switch" aria-label="Режим игры">
@@ -136,8 +142,35 @@
     </section>
     <footer class="ayah-source">Арабский текст: <a href="https://tanzil.net" target="_blank" rel="noopener">Tanzil Project</a>. Перевод смыслов: «Калям Шариф», ДУМ Республики Татарстан.</footer>
   </main>
+
+  <main class="tafsir-shell" id="tafsir-app" hidden>
+    <header class="topbar tafsir-topbar">
+      <button class="back-project" data-open-project="home">← Разделы</button>
+      <a class="brand" href="#tafsir-start"><span class="brand-mark tafsir-mark">ت</span><span>Закрепляем тафсир</span></a>
+      <span class="juz-pill">Пробные 5 сур</span>
+    </header>
+    <section class="tafsir-hero" id="tafsir-start">
+      <p class="eyebrow">Краткий смысл · проверка понимания</p>
+      <h1>Не только прочитать.<br><em>Понять и запомнить.</em></h1>
+      <p>Изучи краткое объяснение каждого аята, затем проверь себя в двух направлениях.</p>
+    </section>
+    <section class="tafsir-card">
+      <div id="tafsir-setup">
+        <div class="tafsir-setup-heading">
+          <div><p class="eyebrow">Пробный раздел</p><h2>Выбери суру</h2></div>
+          <p>Девять коротких сур: история ниспослания, степень достоверности, главные аяты и скрытые варианты в тесте.</p>
+        </div>
+        <div class="tafsir-surah-grid" id="tafsir-surah-grid"></div>
+      </div>
+      <div id="tafsir-study" hidden></div>
+      <div id="tafsir-test" hidden></div>
+      <div id="tafsir-result" hidden></div>
+    </section>
+    <footer class="ayah-source">Краткие объяснения составлены по материалам <a href="https://azan.ru/tafsir" target="_blank" rel="noopener">тафсира Azan.ru</a>. Для подробного изучения переходи к полному тексту источника.</footer>
+  </main>
   <script src="juz30-data.js"></script>
-  <script src="game.js?v=20260824-2"></script>
-  <script src="ayah-game.js?v=20260824-2"></script>
+  <script src="game.js?v=20260901-1"></script>
+  <script src="ayah-game.js?v=20260824-3"></script>
+  <script src="tafsir-game.js?v=20260829-3"></script>
 </body>
 </html>

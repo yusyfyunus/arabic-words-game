@@ -669,7 +669,7 @@ button { color: inherit; }
 .portal-ornament { position: absolute; color: rgba(15,91,70,.055); font-family: "Geeza Pro", "Noto Naskh Arabic", serif; font-size: 340px; line-height: 1; pointer-events: none; }
 .portal-ornament-one { top: 80px; left: -30px; transform: rotate(8deg); }
 .portal-ornament-two { right: -20px; bottom: 15px; color: rgba(230,120,60,.07); transform: rotate(-8deg); }
-.project-choice-grid { position: relative; z-index: 2; width: min(1180px, 100%); margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.project-choice-grid { position: relative; z-index: 2; width: min(1000px, 100%); margin: 0 auto; display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
 .project-choice { position: relative; min-height: 340px; overflow: hidden; padding: 32px; border: 1px solid rgba(23,51,43,.11); border-radius: 24px; background: var(--cream); box-shadow: 0 20px 60px rgba(45,56,42,.1); text-align: left; cursor: pointer; transition: transform 180ms ease, box-shadow 180ms ease; }
 .project-choice:hover { transform: translateY(-5px); box-shadow: 0 28px 70px rgba(45,56,42,.16); }
 .project-choice::after { content: ""; position: absolute; right: -70px; bottom: -90px; width: 250px; height: 250px; border-radius: 50%; background: rgba(15,91,70,.07); }
@@ -677,10 +677,13 @@ button { color: inherit; }
 .ayahs-choice::after { background: rgba(255,255,255,.07); }
 .full-juz-choice { background: #8f432b; color: white; }
 .full-juz-choice::after { background: rgba(255,255,255,.08); }
+.tafsir-choice { background: #e7dcc5; }
+.tafsir-choice::after { background: rgba(143,67,43,.09); }
 .project-number { position: absolute; top: 28px; right: 30px; color: var(--orange); font-family: Georgia, serif; font-size: 18px; font-style: italic; }
 .project-arabic { display: block; margin-bottom: 26px; color: var(--forest); font-family: "Geeza Pro", "Noto Naskh Arabic", serif; font-size: 62px; line-height: 1; text-align: left; }
 .ayahs-choice .project-arabic { color: #f4c7a8; }
 .full-juz-choice .project-arabic { color: #ffe2c8; }
+.tafsir-choice .project-arabic { color: #8f432b; }
 .project-choice small { display: block; margin-bottom: 7px; color: var(--orange); font-size: 10px; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
 .project-choice strong { display: block; font-family: Georgia, serif; font-size: 34px; font-weight: 500; }
 .project-choice p { max-width: 320px; margin: 14px 0 29px; color: rgba(23,51,43,.64); line-height: 1.55; }
@@ -689,6 +692,7 @@ button { color: inherit; }
 .project-choice i { position: relative; z-index: 1; color: var(--forest); font-size: 13px; font-style: normal; font-weight: 850; }
 .ayahs-choice i { color: #f4c7a8; }
 .full-juz-choice i { color: #ffe2c8; }
+.tafsir-choice i { color: #8f432b; }
 .back-project { border: 0; background: transparent; color: var(--forest); cursor: pointer; font-size: 12px; font-weight: 850; }
 .page-shell .topbar { display: grid; grid-template-columns: 1fr auto 1fr; gap: 15px; }
 .page-shell .topbar .back-project { justify-self: start; }
@@ -824,4 +828,187 @@ button { color: inherit; }
   .ayah-result-screen > h2 { font-size: 25px; }
   .ayah-error-item { grid-template-columns: 29px 1fr; padding: 12px; }
   .result-actions { flex-direction: column; }
+}
+
+/* Закрепление тафсира */
+.tafsir-shell {
+  min-height: 100vh;
+  overflow: hidden;
+  padding: 0 24px 80px;
+  background:
+    radial-gradient(circle at 12% 24%, rgba(143,67,43,.09), transparent 29%),
+    radial-gradient(circle at 88% 78%, rgba(15,91,70,.1), transparent 27%),
+    var(--paper);
+}
+
+.tafsir-topbar { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; }
+.tafsir-topbar .back-project { justify-self: start; }
+.tafsir-mark { background: #8f432b; }
+.tafsir-hero { width: min(850px, 100%); margin: 58px auto 34px; text-align: center; }
+.tafsir-hero h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(46px, 7vw, 76px); font-weight: 500; line-height: .98; letter-spacing: -.045em; }
+.tafsir-hero h1 em { color: #8f432b; font-weight: 500; }
+.tafsir-hero > p:last-child { max-width: 620px; margin: 24px auto 0; color: rgba(23,51,43,.66); line-height: 1.6; }
+.tafsir-card { width: min(1050px, 100%); margin: 0 auto; overflow: hidden; border: 1px solid rgba(23,51,43,.1); border-radius: 24px; background: var(--cream); box-shadow: 0 24px 70px rgba(45,56,42,.12); }
+#tafsir-setup { padding: 38px; }
+.tafsir-setup-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 25px; }
+.tafsir-setup-heading .eyebrow { margin-bottom: 7px; }
+.tafsir-setup-heading h2 { margin: 0; font-family: Georgia, serif; font-size: 35px; font-weight: 500; }
+.tafsir-setup-heading > p { max-width: 360px; margin: 0; color: rgba(23,51,43,.58); font-size: 13px; line-height: 1.5; text-align: right; }
+.tafsir-surah-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 13px; }
+.tafsir-surah-card { position: relative; min-height: 280px; display: flex; flex-direction: column; align-items: flex-start; padding: 24px; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: #fbf8f1; cursor: pointer; text-align: left; transition: 170ms ease; }
+.tafsir-surah-card:hover { transform: translateY(-3px); border-color: #8f432b; box-shadow: 0 16px 32px rgba(45,56,42,.1); }
+.tafsir-card-number { position: absolute; top: 20px; right: 20px; color: var(--orange); font-family: Georgia, serif; font-size: 13px; font-style: italic; }
+.tafsir-card-arabic { color: #8f432b; font-family: "Uthmanic Hafs", "Geeza Pro", serif; font-size: 47px; line-height: 1.5; }
+.tafsir-card-copy { display: grid; margin-top: 7px; }
+.tafsir-card-copy strong { font-family: Georgia, serif; font-size: 25px; font-weight: 500; }
+.tafsir-card-copy small { margin-top: 5px; color: rgba(23,51,43,.54); font-size: 10px; }
+.tafsir-card-theme { margin-top: 22px; color: rgba(23,51,43,.68); font-size: 12px; line-height: 1.5; }
+.tafsir-surah-card i { margin-top: auto; padding-top: 20px; color: #8f432b; font-size: 12px; font-style: normal; font-weight: 850; }
+.tafsir-study-head, .tafsir-test-head { padding: 24px 36px; border-bottom: 1px solid var(--line); background: #f3eee4; }
+.tafsir-study-head { display: flex; align-items: center; justify-content: space-between; }
+.tafsir-study-head button, .tafsir-test-head > button { padding: 0; border: 0; background: transparent; color: var(--forest); cursor: pointer; font-size: 12px; font-weight: 850; }
+.tafsir-study-head span { color: rgba(23,51,43,.53); font-size: 11px; }
+.tafsir-overview { display: grid; grid-template-columns: 1fr auto; gap: 25px; align-items: center; padding: 38px 45px 25px; }
+.tafsir-overview h2 { margin: 0 0 12px; font-family: Georgia, serif; font-size: 38px; font-weight: 500; }
+.tafsir-overview > div > p:last-child { max-width: 680px; margin: 0; color: rgba(23,51,43,.66); font-size: 14px; line-height: 1.65; }
+.tafsir-title-arabic { color: #8f432b; font-family: "Uthmanic Hafs", "Geeza Pro", serif; font-size: 62px; line-height: 1.4; }
+.tafsir-theme { display: grid; gap: 5px; margin: 0 45px 28px; padding: 17px 20px; border-left: 4px solid var(--orange); border-radius: 0 11px 11px 0; background: #f7eee7; }
+.tafsir-theme small { color: var(--orange); font-size: 9px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+.tafsir-theme strong { font-family: Georgia, serif; font-size: 18px; font-weight: 500; }
+.tafsir-story-card { margin: 0 45px 14px; padding: 24px; border: 1px solid rgba(143,67,43,.2); border-radius: 16px; background: linear-gradient(145deg, #fffaf2, #f6eee3); }
+.tafsir-story-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
+.tafsir-story-heading small { color: #8f432b; font-size: 9px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+.tafsir-story-heading h3 { margin: 6px 0 0; font-family: Georgia, serif; font-size: 23px; font-weight: 500; }
+.tafsir-story-heading > span { color: rgba(23,51,43,.46); font-size: 10px; }
+.tafsir-story-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+.tafsir-story-step { position: relative; display: grid; grid-template-columns: 31px 1fr; gap: 11px; }
+.tafsir-story-step:not(:last-child)::after { content: "→"; position: absolute; top: 4px; right: -20px; color: #c79e79; font-size: 18px; }
+.tafsir-story-step > span { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 50%; background: #8f432b; color: white; font-size: 11px; font-weight: 850; }
+.tafsir-story-step strong { display: block; font-family: Georgia, serif; font-size: 14px; font-weight: 600; }
+.tafsir-story-step p { margin: 6px 0 0; color: rgba(23,51,43,.68); font-size: 11px; line-height: 1.55; }
+.tafsir-evidence-list { display: grid; gap: 8px; margin-top: 21px; padding-top: 18px; border-top: 1px solid rgba(143,67,43,.15); }
+.tafsir-evidence { display: grid; grid-template-columns: 155px 1fr; gap: 12px; align-items: start; padding: 10px 12px; border-radius: 9px; background: rgba(255,255,255,.72); }
+.tafsir-evidence strong { position: relative; padding-left: 17px; font-size: 10px; }
+.tafsir-evidence strong::before { content: ""; position: absolute; top: 3px; left: 0; width: 9px; height: 9px; border-radius: 50%; }
+.tafsir-evidence.strong strong::before { background: #4b9a68; }
+.tafsir-evidence.tafsir strong::before { background: #d2a53c; }
+.tafsir-evidence.different strong::before { background: #a5aaa7; }
+.tafsir-evidence p { margin: 0; color: rgba(23,51,43,.65); font-size: 10px; line-height: 1.5; }
+.tafsir-remember { display: grid; grid-template-columns: 145px 1fr; gap: 15px; align-items: center; margin: 0 45px 14px; padding: 17px 20px; border-radius: 12px; background: var(--forest); color: white; }
+.tafsir-remember span { color: #f0d5a6; font-size: 9px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+.tafsir-remember p { margin: 0; font-family: Georgia, serif; font-size: 15px; line-height: 1.5; }
+.tafsir-details-section { margin: 0 45px 14px; padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: #f7f4ec; }
+.tafsir-details-heading small { color: var(--orange); font-size: 9px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+.tafsir-details-heading h3 { margin: 6px 0 17px; font-family: Georgia, serif; font-size: 23px; font-weight: 500; }
+.tafsir-details-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.tafsir-detail-card { padding: 18px; border-left: 4px solid #d2a53c; border-radius: 10px; background: white; }
+.tafsir-detail-card > span { color: #8f432b; font-size: 9px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.tafsir-detail-card h4 { margin: 7px 0 8px; font-family: Georgia, serif; font-size: 17px; font-weight: 600; }
+.tafsir-detail-card p { margin: 0; color: rgba(23,51,43,.68); font-size: 11px; line-height: 1.65; }
+.tafsir-knowledge-grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 0 45px 28px; }
+.tafsir-knowledge-card { padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: #fbf8f1; }
+.tafsir-knowledge-card.famous { grid-column: 1 / -1; }
+.tafsir-knowledge-card > small { color: var(--orange); font-size: 9px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+.tafsir-knowledge-card h3 { margin: 7px 0 10px; font-family: Georgia, serif; font-size: 20px; font-weight: 500; }
+.tafsir-knowledge-card > p { margin: 0; color: rgba(23,51,43,.68); font-size: 12px; line-height: 1.65; }
+.tafsir-knowledge-card.revelation { border-top: 4px solid #8f432b; }
+.tafsir-knowledge-card.virtue { border-top: 4px solid var(--forest); }
+.tafsir-knowledge-card.famous { border-top: 4px solid var(--orange); }
+.tafsir-famous-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
+.tafsir-famous-item { padding: 17px; border-radius: 11px; background: #f3eee4; }
+.tafsir-famous-item > span { color: #8f432b; font-size: 9px; font-weight: 850; text-transform: uppercase; }
+.tafsir-famous-item b { display: block; margin-top: 8px; color: var(--forest-dark); font-family: "Uthmanic Hafs", "Geeza Pro", serif; font-size: 27px; font-weight: 400; line-height: 1.9; text-align: right; }
+.tafsir-famous-item p { margin: 6px 0 0; color: rgba(23,51,43,.7); font-size: 11px; line-height: 1.5; }
+.tafsir-famous-item em { display: block; margin-top: 8px; color: var(--forest); font-family: Georgia, serif; font-size: 12px; line-height: 1.45; }
+.tafsir-ayah-list { display: grid; gap: 12px; padding: 0 45px 35px; }
+.tafsir-ayah-card { display: grid; grid-template-columns: 68px 1fr; gap: 5px 18px; padding: 21px; border: 1px solid var(--line); border-radius: 14px; background: #fbf8f1; }
+.tafsir-ayah-number { grid-row: 1 / 4; width: 54px; height: 54px; display: grid; place-items: center; border-radius: 50%; background: #e9dfca; color: #8f432b; font-size: 10px; font-weight: 850; }
+.tafsir-arabic { margin: 0; color: var(--forest-dark); font-family: "Uthmanic Hafs", "Geeza Pro", serif; font-size: 31px; line-height: 1.9; text-align: right; }
+.tafsir-translation { margin: 0; color: rgba(23,51,43,.62); font-size: 12px; line-height: 1.5; }
+.tafsir-summary { margin-top: 9px; padding-top: 12px; border-top: 1px solid var(--line); }
+.tafsir-summary small { color: var(--orange); font-size: 9px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+.tafsir-summary p { margin: 5px 0 0; font-family: Georgia, serif; font-size: 15px; line-height: 1.5; }
+.tafsir-study-actions { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 45px; border-top: 1px solid var(--line); background: rgba(255,253,247,.97); backdrop-filter: blur(8px); }
+.tafsir-source-links { display: grid; gap: 6px; }
+.tafsir-study-actions a { color: var(--forest); font-size: 11px; font-weight: 800; text-decoration: none; }
+.tafsir-study-actions button { padding: 14px 20px; border: 0; border-radius: 11px; background: #8f432b; color: white; cursor: pointer; font-size: 12px; font-weight: 850; }
+.tafsir-test-head > button { margin-bottom: 18px; }
+.tafsir-test-head > div:not(.progress-track) { display: flex; justify-content: space-between; margin-bottom: 9px; color: rgba(23,51,43,.58); font-size: 11px; }
+.tafsir-test-head strong { color: #8f432b; }
+.tafsir-question { min-height: 570px; padding: 35px 55px 45px; text-align: center; }
+.tafsir-question .prompt { margin: 28px 0 17px; }
+.tafsir-prompt { width: min(830px, 100%); margin: 0 auto 28px; padding: 27px; border: 1px solid var(--line); border-radius: 16px; background: #fbf8f1; }
+.tafsir-prompt.arabic { color: var(--forest-dark); font-family: "Uthmanic Hafs", "Geeza Pro", serif; font-size: clamp(32px, 5vw, 48px); line-height: 2; }
+.tafsir-prompt.meaning { font-family: Georgia, serif; font-size: clamp(19px, 3vw, 25px); line-height: 1.5; }
+.tafsir-answer-list { width: min(850px, 100%); display: grid; gap: 10px; margin: 0 auto; text-align: left; }
+.tafsir-answer { min-height: 64px; display: grid; grid-template-columns: 34px 1fr; align-items: center; gap: 13px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 11px; background: white; cursor: pointer; line-height: 1.5; text-align: left; }
+.tafsir-answer:hover:not(:disabled) { border-color: var(--forest); background: #f2f7f3; }
+.tafsir-answer > span:first-child { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--paper); color: var(--orange); font-size: 11px; font-weight: 850; }
+.tafsir-answer.arabic-answer { min-height: 81px; }
+.tafsir-answer.arabic-answer b { display: block; color: var(--forest-dark); font-family: "Uthmanic Hafs", "Geeza Pro", serif; font-size: 27px; font-weight: 400; line-height: 1.9; text-align: right; }
+.tafsir-answer.right { border-color: #62a47f; background: #eaf6ee; }
+.tafsir-answer.wrong { border-color: #dc8667; background: #fff0e9; }
+.tafsir-feedback { width: min(850px, 100%); display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; margin: 18px auto 0; padding: 16px; border-radius: 12px; text-align: left; }
+.tafsir-feedback.good { background: #eaf6ee; }
+.tafsir-feedback.bad { background: #fff0e9; }
+.tafsir-feedback strong { font-family: Georgia, serif; font-size: 17px; }
+.tafsir-feedback p { margin: 5px 0 0; font-size: 12px; line-height: 1.45; }
+.tafsir-feedback-arabic { color: var(--forest); font-family: "Uthmanic Hafs", "Geeza Pro", serif; font-size: 22px !important; line-height: 1.8 !important; }
+.tafsir-feedback button { padding: 12px 17px; border: 0; border-radius: 9px; background: var(--forest); color: white; cursor: pointer; font-size: 12px; font-weight: 850; }
+.tafsir-result-screen { padding: 45px 50px 55px; text-align: center; }
+.tafsir-result-screen > h2 { margin: 0; font-family: Georgia, serif; font-size: 30px; font-weight: 500; }
+.tafsir-result-screen > p { color: rgba(23,51,43,.62); line-height: 1.55; }
+.tafsir-error-list { display: grid; gap: 10px; max-height: 550px; margin-top: 25px; overflow: auto; text-align: left; }
+.tafsir-error-list article { display: grid; grid-template-columns: 34px 1fr; gap: 14px; padding: 17px; border: 1px solid #f0c4b5; border-radius: 12px; background: #fff8f4; }
+.tafsir-error-list article > span { width: 29px; height: 29px; display: grid; place-items: center; border-radius: 50%; background: #f8dfd4; color: #a74b2c; font-size: 11px; font-weight: 850; }
+.tafsir-error-list small { color: var(--orange); font-size: 10px; font-weight: 800; }
+.tafsir-error-list p { margin: 7px 0 0; font-size: 12px; line-height: 1.5; }
+
+@media (max-width: 760px) {
+  .tafsir-shell { padding: 0 14px 50px; }
+  .tafsir-topbar { grid-template-columns: auto 1fr auto; }
+  .tafsir-topbar .brand { justify-self: center; font-size: 0; }
+  .tafsir-topbar .brand-mark { font-size: 21px; }
+  .tafsir-hero { margin: 42px auto 27px; }
+  .tafsir-hero h1 { font-size: 43px; }
+  .tafsir-hero h1 br { display: none; }
+  .tafsir-card { border-radius: 18px; }
+  #tafsir-setup { padding: 25px 14px; }
+  .tafsir-setup-heading { align-items: flex-start; }
+  .tafsir-setup-heading h2 { font-size: 27px; }
+  .tafsir-setup-heading > p { display: none; }
+  .tafsir-surah-grid { grid-template-columns: 1fr; }
+  .tafsir-surah-card { min-height: 225px; }
+  .tafsir-study-head, .tafsir-test-head { padding: 20px 16px; }
+  .tafsir-overview { grid-template-columns: 1fr; padding: 28px 17px 20px; }
+  .tafsir-title-arabic { grid-row: 1; font-size: 49px; }
+  .tafsir-overview h2 { font-size: 31px; }
+  .tafsir-theme { margin: 0 17px 22px; }
+  .tafsir-story-card { margin: 0 14px 12px; padding: 18px; }
+  .tafsir-story-heading > span { display: none; }
+  .tafsir-story-steps { grid-template-columns: 1fr; gap: 22px; }
+  .tafsir-story-step:not(:last-child)::after { content: "↓"; top: auto; right: auto; bottom: -20px; left: 9px; }
+  .tafsir-evidence { grid-template-columns: 1fr; gap: 5px; }
+  .tafsir-remember { grid-template-columns: 1fr; gap: 6px; margin: 0 14px 12px; }
+  .tafsir-details-section { margin: 0 14px 12px; padding: 18px; }
+  .tafsir-details-grid { grid-template-columns: 1fr; }
+  .tafsir-knowledge-grid { grid-template-columns: 1fr; padding: 0 14px 22px; }
+  .tafsir-knowledge-card.famous { grid-column: auto; }
+  .tafsir-famous-list { grid-template-columns: 1fr; }
+  .tafsir-famous-item b { font-size: 24px; }
+  .tafsir-ayah-list { padding: 0 14px 25px; }
+  .tafsir-ayah-card { grid-template-columns: 1fr; padding: 16px; }
+  .tafsir-ayah-number { grid-row: auto; width: auto; height: auto; display: block; background: transparent; }
+  .tafsir-arabic { font-size: 27px; }
+  .tafsir-study-actions { align-items: stretch; flex-direction: column; padding: 15px; }
+  .tafsir-study-actions button { width: 100%; }
+  .tafsir-question { min-height: 530px; padding: 28px 15px 35px; }
+  .tafsir-prompt { padding: 20px 14px; }
+  .tafsir-prompt.arabic { font-size: 30px; line-height: 1.8; }
+  .tafsir-answer { padding: 11px; font-size: 12px; }
+  .tafsir-answer.arabic-answer b { font-size: 23px; }
+  .tafsir-feedback { grid-template-columns: auto 1fr; }
+  .tafsir-feedback button { grid-column: 1 / -1; }
+  .tafsir-result-screen { padding: 36px 16px 45px; }
+  .tafsir-result-screen > h2 { font-size: 25px; }
 }
