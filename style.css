@@ -693,6 +693,14 @@ button { color: inherit; }
 .ayahs-choice i { color: #f4c7a8; }
 .full-juz-choice i { color: #ffe2c8; }
 .tafsir-choice i { color: #8f432b; }
+.daily-choice { background: #f3ead1; }
+.daily-choice::after { background: rgba(210,167,59,.14); }
+.daily-choice .project-arabic { color: #b57b2b; }
+.daily-choice i { color: #a06d24; }
+.continue-choice { background: #dce9e1; }
+.continue-choice::after { background: rgba(15,91,70,.11); }
+.continue-choice .project-arabic { color: #287862; }
+.continue-choice i { color: var(--forest); }
 .back-project { border: 0; background: transparent; color: var(--forest); cursor: pointer; font-size: 12px; font-weight: 850; }
 .page-shell .topbar { display: grid; grid-template-columns: 1fr auto 1fr; gap: 15px; }
 .page-shell .topbar .back-project { justify-self: start; }
@@ -706,10 +714,10 @@ button { color: inherit; }
 .juz-pill { justify-self: end; padding: 8px 12px; border: 1px solid var(--line); border-radius: 99px; color: var(--forest); font-size: 11px; font-weight: 850; }
 .ayah-hero { width: min(850px, 100%); margin: 58px auto 34px; text-align: center; }
 .ayah-card { width: min(1050px, 100%); margin: 0 auto; overflow: hidden; border: 1px solid rgba(23,51,43,.1); border-radius: 24px; background: var(--cream); box-shadow: 0 24px 70px rgba(45,56,42,.12); }
-.ayah-tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--forest-dark); }
+.ayah-tabs { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--forest-dark); }
 .ayah-tabs button { padding: 20px; border: 0; border-right: 1px solid rgba(255,255,255,.12); background: transparent; color: rgba(255,255,255,.64); cursor: pointer; font-weight: 850; }
 .ayah-tabs button.active { background: var(--cream); color: var(--forest-dark); }
-#one-surah-panel, #custom-test-panel { padding: 34px 36px 0; }
+#one-surah-panel, #custom-test-panel, #surah-facts-panel { padding: 34px 36px 0; }
 .ayah-setup-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
 .ayah-setup-heading .eyebrow { margin-bottom: 7px; }
 .ayah-setup-heading h2 { margin: 0; font-family: Georgia, serif; font-size: 34px; font-weight: 500; }
@@ -784,6 +792,185 @@ button { color: inherit; }
 .ayah-source { width: min(1050px, 100%); margin: 22px auto 0; color: rgba(23,51,43,.48); font-size: 10px; line-height: 1.6; text-align: center; }
 .ayah-source a { color: var(--forest); }
 
+/* Ежедневное закрепление */
+.daily-shell { min-height: 100vh; overflow: hidden; padding: 0 24px 80px; background: radial-gradient(circle at 85% 18%, rgba(210,167,59,.12), transparent 28%), var(--paper); }
+.daily-topbar { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; }
+.daily-topbar .back-project { justify-self: start; }
+.daily-mark { background: var(--gold); }
+.daily-hero { width: min(850px, 100%); margin: 58px auto 34px; text-align: center; }
+.daily-hero h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(46px, 7vw, 76px); font-weight: 500; line-height: .98; letter-spacing: -.045em; }
+.daily-hero h1 em { color: #9b6c1e; font-weight: 500; }
+.daily-hero > p:last-child { max-width: 610px; margin: 24px auto 0; color: rgba(23,51,43,.66); line-height: 1.6; }
+.daily-card { width: min(1050px, 100%); margin: 0 auto; overflow: hidden; border: 1px solid rgba(23,51,43,.1); border-radius: 24px; background: var(--cream); box-shadow: 0 24px 70px rgba(45,56,42,.12); }
+.daily-setup-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 34px 36px 24px; }
+.daily-setup-heading .eyebrow { margin-bottom: 7px; }
+.daily-setup-heading h2 { margin: 0; font-family: Georgia, serif; font-size: 34px; font-weight: 500; }
+.daily-setup-heading > p { max-width: 330px; margin: 0; color: rgba(23,51,43,.58); font-size: 13px; line-height: 1.5; text-align: right; }
+.daily-days-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 36px 28px; }
+.daily-day-card { min-height: 112px; display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 14px; padding: 17px; border: 1px solid var(--line); border-radius: 14px; background: #fbf8f1; cursor: pointer; text-align: left; transition: 150ms ease; }
+.daily-day-card:hover { border-color: rgba(15,91,70,.45); background: #f2f6ef; transform: translateY(-2px); }
+.daily-day-card.completed { border-color: #8bb79b; background: #f0f8f2; }
+.daily-day-card.completed .daily-day-number { background: #dceee1; color: var(--forest); }
+.daily-day-number { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; background: #f5ead1; color: #9b6c1e; font-family: Georgia, serif; font-size: 16px; font-weight: 700; }
+.daily-day-copy { display: grid; gap: 3px; min-width: 0; }
+.daily-day-copy strong { color: var(--forest-dark); font-family: Georgia, serif; font-size: 20px; font-weight: 600; }
+.daily-day-copy small { color: var(--orange); font-size: 11px; font-weight: 800; }
+.daily-day-copy em { color: rgba(23,51,43,.55); font-size: 10px; font-style: normal; line-height: 1.35; }
+.daily-day-copy .daily-completed-label { color: var(--forest); font-weight: 800; }
+.daily-day-arrow { color: var(--forest); font-size: 11px; font-weight: 850; white-space: nowrap; }
+.daily-test-head { padding: 24px 36px 0; }
+.daily-test-head > button { margin-bottom: 20px; padding: 0; border: 0; background: transparent; color: var(--forest); cursor: pointer; font-size: 12px; font-weight: 850; }
+.daily-test-head > div { display: flex; justify-content: space-between; margin-bottom: 9px; color: rgba(23,51,43,.58); font-size: 11px; }
+.daily-test-head strong { color: var(--forest); }
+.daily-question { min-height: 560px; padding: 33px 55px 44px; text-align: center; }
+.daily-reference { display: flex; justify-content: center; gap: 12px; color: rgba(23,51,43,.55); font-size: 11px; }
+.daily-reference strong { color: var(--orange); }
+.daily-question .prompt { margin: 28px 0 17px; }
+.daily-prompt { width: min(810px, 100%); margin: 0 auto 28px; padding: 28px; border: 1px solid var(--line); border-radius: 16px; background: #fbf8f1; }
+.daily-prompt.arabic-prompt { color: var(--forest-dark); font-family: "Uthmanic Hafs", "Geeza Pro", "Noto Naskh Arabic", serif; font-size: clamp(32px, 5vw, 48px); line-height: 2; }
+.daily-prompt.russian-prompt { font-family: Georgia, serif; font-size: clamp(20px, 3vw, 27px); line-height: 1.45; }
+.daily-answer-list { width: min(850px, 100%); margin: 0 auto; display: grid; gap: 10px; text-align: left; }
+.daily-answer { min-height: 62px; display: grid; grid-template-columns: 34px 1fr; align-items: center; gap: 13px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 11px; background: white; cursor: pointer; line-height: 1.45; text-align: left; }
+.daily-answer:hover:not(:disabled) { border-color: var(--forest); background: #f2f7f3; }
+.daily-answer > span:first-child { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--paper); color: var(--orange); font-size: 11px; font-weight: 850; }
+.daily-answer.arabic-answer { min-height: 80px; }
+.daily-answer.arabic-answer b { display: block; color: var(--forest-dark); font-family: "Uthmanic Hafs", "Geeza Pro", "Noto Naskh Arabic", serif; font-size: 28px; font-weight: 400; line-height: 1.9; text-align: right; }
+.daily-answer.right { border-color: #62a47f; background: #eaf6ee; }
+.daily-answer.wrong { border-color: #dc8667; background: #fff0e9; }
+.daily-feedback { width: min(850px, 100%); display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; margin: 18px auto 0; padding: 16px; border-radius: 12px; text-align: left; }
+.daily-feedback.good { background: #eaf6ee; }
+.daily-feedback.bad { background: #fff0e9; }
+.daily-feedback strong { font-family: Georgia, serif; font-size: 17px; }
+.daily-feedback p { margin: 5px 0 0; font-size: 12px; line-height: 1.45; }
+.daily-feedback .feedback-arabic { color: var(--forest); font-family: "Uthmanic Hafs", "Geeza Pro", "Noto Naskh Arabic", serif; font-size: 22px; line-height: 1.8; }
+.daily-feedback button { padding: 12px 17px; border: 0; border-radius: 9px; background: var(--forest); color: white; cursor: pointer; font-size: 12px; font-weight: 850; }
+.daily-result-screen { padding: 45px 50px 55px; text-align: center; }
+.daily-result-screen > h2 { margin: 0; font-family: Georgia, serif; font-size: 30px; font-weight: 500; }
+.daily-result-screen > p { color: rgba(23,51,43,.62); line-height: 1.55; }
+.daily-error-review { margin-top: 30px; text-align: left; }
+.daily-error-review h3 { font-family: Georgia, serif; font-size: 23px; font-weight: 500; }
+.daily-error-list { display: grid; gap: 10px; max-height: 620px; overflow: auto; }
+.daily-error-item { display: grid; grid-template-columns: 34px 1fr; gap: 14px; padding: 17px; border: 1px solid #f0c4b5; border-radius: 12px; background: #fff8f4; }
+
+/* Продолжи аят — аудио и голосовая проверка */
+.continue-shell { min-height: 100vh; overflow: hidden; padding: 0 24px 80px; background: radial-gradient(circle at 85% 18%, rgba(15,91,70,.10), transparent 28%), var(--paper); }
+.continue-topbar { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; }
+.continue-topbar .back-project { justify-self: start; }
+.continue-mark { background: var(--forest); }
+.continue-hero { width: min(850px, 100%); margin: 58px auto 34px; text-align: center; }
+.continue-hero h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(46px, 7vw, 76px); font-weight: 500; line-height: .98; letter-spacing: -.045em; }
+.continue-hero h1 em { color: var(--forest); font-weight: 500; }
+.continue-hero > p:last-child { max-width: 630px; margin: 24px auto 0; color: rgba(23,51,43,.66); line-height: 1.6; }
+.continue-card { width: min(1050px, 100%); margin: 0 auto; overflow: hidden; border: 1px solid rgba(23,51,43,.1); border-radius: 24px; background: var(--cream); box-shadow: 0 24px 70px rgba(45,56,42,.12); }
+.continue-setup-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 34px 36px 24px; }
+.continue-setup-heading .eyebrow { margin-bottom: 7px; }
+.continue-setup-heading h2 { margin: 0; font-family: Georgia, serif; font-size: 34px; font-weight: 500; }
+.continue-setup-heading > p { max-width: 350px; margin: 0; color: rgba(23,51,43,.58); font-size: 13px; line-height: 1.5; text-align: right; }
+.continue-settings { display: flex; align-items: center; gap: 12px; margin: 0 36px 22px; padding: 15px 17px; border: 1px solid var(--line); border-radius: 12px; background: #fbf8f1; }
+.continue-settings label { color: var(--forest-dark); font-size: 13px; font-weight: 800; white-space: nowrap; }
+.continue-settings input { accent-color: var(--forest); }
+.continue-settings span { color: rgba(23,51,43,.56); font-size: 11px; }
+.continue-compatibility { margin: 0 36px 20px; padding: 10px 13px; border-left: 3px solid var(--orange); background: #fff6ed; color: rgba(23,51,43,.62); font-size: 11px; line-height: 1.5; }
+.continue-compatibility code { color: #a74b2c; font-size: 10px; }
+.continue-start-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 20px 36px; border-top: 1px solid var(--line); }
+.continue-start-row strong { color: var(--forest); font-family: Georgia, serif; font-size: 17px; }
+.continue-start-row button, .continue-next { padding: 14px 22px; border: 0; border-radius: 11px; background: var(--forest); color: white; cursor: pointer; font-weight: 850; }
+.continue-test-head { padding: 24px 36px 0; }
+.continue-test-head > button { margin-bottom: 20px; padding: 0; border: 0; background: transparent; color: var(--forest); cursor: pointer; font-size: 12px; font-weight: 850; }
+.continue-test-head > div { display: flex; justify-content: space-between; margin-bottom: 9px; color: rgba(23,51,43,.58); font-size: 11px; }
+.continue-test-head strong { color: var(--forest); }
+.continue-question { min-height: 580px; padding: 33px 55px 44px; text-align: center; }
+.continue-reference { display: flex; justify-content: center; gap: 12px; color: rgba(23,51,43,.55); font-size: 11px; }
+.continue-reference strong { color: var(--orange); }
+.continue-question .prompt { margin: 28px 0 17px; }
+.continue-prompt { width: min(810px, 100%); margin: 0 auto 10px; padding: 28px; border: 1px solid var(--line); border-radius: 16px; background: #fbf8f1; color: var(--forest-dark); font-family: "Uthmanic Hafs", "Geeza Pro", "Noto Naskh Arabic", serif; font-size: clamp(32px, 5vw, 48px); line-height: 2; }
+.continue-prompt-translation { width: min(810px, 100%); margin: 0 auto 24px; color: rgba(23,51,43,.58); font-family: Georgia, serif; font-size: 15px; line-height: 1.5; }
+.continue-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+.continue-actions button { min-height: 52px; padding: 14px 19px; border: 1px solid var(--forest); border-radius: 11px; background: white; color: var(--forest); cursor: pointer; font-size: 12px; font-weight: 850; }
+.continue-actions .continue-listen { background: var(--forest); color: white; }
+.continue-actions .continue-speak { background: #e9f3ec; }
+.continue-actions .continue-speak.listening { border-color: var(--orange); background: #fff0e9; color: #a74b2c; }
+.continue-actions .continue-reveal { border-color: var(--line); color: rgba(23,51,43,.7); }
+.continue-voice-status { min-height: 19px; margin: 14px auto 0; color: rgba(23,51,43,.56); font-size: 11px; }
+.continue-answer { width: min(810px, 100%); margin: 21px auto 0; padding: 19px; border: 1px solid #a9cbb2; border-radius: 13px; background: #eff8f1; text-align: left; }
+.continue-answer small { color: var(--forest); font-size: 10px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; }
+.continue-answer-arabic { margin: 10px 0 2px; color: var(--forest-dark); font-family: "Uthmanic Hafs", "Geeza Pro", "Noto Naskh Arabic", serif; font-size: 30px; line-height: 1.9; text-align: right; }
+.continue-answer > div { color: rgba(23,51,43,.64); font-size: 12px; line-height: 1.5; }
+.continue-answer-listen { margin-top: 12px; padding: 9px 12px; border: 1px solid var(--forest); border-radius: 8px; background: white; color: var(--forest); cursor: pointer; font-size: 11px; font-weight: 800; }
+.continue-match { margin: 11px 0 0; color: rgba(23,51,43,.52); font-size: 10px; }
+.continue-next { display: block; margin: 20px auto 0; }
+.continue-result-screen { padding: 45px 50px 55px; text-align: center; }
+.continue-result-screen > h2 { margin: 0; font-family: Georgia, serif; font-size: 30px; font-weight: 500; }
+.continue-result-screen > p { color: rgba(23,51,43,.62); line-height: 1.55; }
+.continue-mistakes { width: min(810px, 100%); margin: 25px auto 28px; padding: 20px; border: 1px solid #e5c9a8; border-radius: 15px; background: #fff8ef; text-align: left; }
+.continue-mistakes h3 { margin: 0 0 6px; color: var(--forest-dark); font-family: Georgia, serif; font-size: 23px; font-weight: 500; }
+.continue-mistakes > p { margin: 0 0 14px; color: rgba(23,51,43,.62); font-size: 13px; line-height: 1.5; }
+.continue-mistake { margin-top: 12px; padding: 14px; border: 1px solid rgba(167,75,44,.18); border-radius: 11px; background: #fffdf9; }
+.continue-mistake-meta { color: #a74b2c; font-size: 11px; font-weight: 850; }
+.continue-mistake-arabic { margin: 8px 0 2px; color: var(--forest-dark); font-family: "Uthmanic Hafs", "Geeza Pro", "Noto Naskh Arabic", serif; font-size: 27px; line-height: 1.8; }
+.continue-mistake p:not(.continue-mistake-arabic) { margin: 2px 0 7px; color: rgba(23,51,43,.7); font-size: 12px; line-height: 1.45; }
+.continue-mistake small { display: block; color: rgba(23,51,43,.52); font-size: 10px; line-height: 1.4; }
+.continue-mistake-listen { margin-top: 10px; padding: 8px 11px; border: 1px solid var(--forest); border-radius: 8px; background: white; color: var(--forest); cursor: pointer; font-size: 11px; font-weight: 800; }
+.continue-no-mistakes { border-color: #a9cbb2; background: #eff8f1; }
+
+@media (max-width: 760px) {
+  .daily-shell { padding: 0 14px 50px; }
+  .daily-topbar { grid-template-columns: auto 1fr auto; }
+  .daily-topbar .brand { justify-self: center; font-size: 0; }
+  .daily-topbar .brand-mark { font-size: 21px; }
+  .daily-hero { margin: 42px auto 27px; }
+  .daily-hero h1 { font-size: 44px; }
+  .daily-card { border-radius: 18px; }
+  .daily-setup-heading { align-items: flex-start; padding: 25px 14px 18px; }
+  .daily-setup-heading h2 { font-size: 25px; }
+  .daily-setup-heading > p { display: none; }
+  .daily-days-grid { grid-template-columns: 1fr; gap: 8px; padding: 0 14px 18px; }
+  .daily-day-card { min-height: 91px; grid-template-columns: 40px 1fr auto; gap: 10px; padding: 12px; }
+  .daily-day-number { width: 35px; height: 35px; font-size: 13px; }
+  .daily-day-copy strong { font-size: 17px; }
+  .daily-day-copy em { font-size: 9px; }
+  .daily-day-arrow { font-size: 10px; }
+  .daily-test-head { padding: 20px 18px 0; }
+  .daily-question { min-height: 520px; padding: 27px 16px 35px; }
+  .daily-prompt { padding: 20px 15px; }
+  .daily-prompt.arabic-prompt { font-size: 31px; line-height: 1.75; }
+  .daily-prompt.russian-prompt { font-size: 19px; }
+  .daily-answer { padding: 11px; font-size: 12px; }
+  .daily-answer.arabic-answer b { font-size: 23px; }
+  .daily-feedback { grid-template-columns: auto 1fr; }
+  .daily-feedback button { grid-column: 1 / -1; }
+  .daily-result-screen { padding: 36px 16px 45px; }
+  .daily-result-screen > h2 { font-size: 25px; }
+  .daily-error-item { grid-template-columns: 29px 1fr; padding: 12px; }
+}
+
+@media (max-width: 760px) {
+  .continue-shell { padding: 0 14px 50px; }
+  .continue-topbar { grid-template-columns: auto 1fr auto; }
+  .continue-topbar .brand { justify-self: center; font-size: 0; }
+  .continue-topbar .brand-mark { font-size: 21px; }
+  .continue-hero { margin: 42px auto 27px; }
+  .continue-hero h1 { font-size: 44px; }
+  .continue-card { border-radius: 18px; }
+  .continue-setup-heading { align-items: flex-start; padding: 25px 14px 18px; }
+  .continue-setup-heading h2 { font-size: 25px; }
+  .continue-setup-heading > p { display: none; }
+  .continue-settings { align-items: flex-start; flex-direction: column; margin: 0 14px 18px; padding: 13px; }
+  .continue-settings label { white-space: normal; }
+  .continue-compatibility { margin: 0 14px 16px; }
+  .continue-start-row { align-items: flex-start; flex-direction: column; padding: 15px 14px; }
+  .continue-start-row button { width: 100%; }
+  .continue-test-head { padding: 20px 18px 0; }
+  .continue-question { min-height: 540px; padding: 27px 16px 35px; }
+  .continue-prompt { padding: 20px 15px; font-size: 31px; line-height: 1.75; }
+  .continue-prompt-translation { font-size: 13px; }
+  .continue-actions { display: grid; grid-template-columns: 1fr; }
+  .continue-actions button { width: 100%; }
+  .continue-answer-arabic { font-size: 25px; }
+  .continue-result-screen { padding: 36px 16px 45px; }
+  .continue-result-screen > h2 { font-size: 25px; }
+}
+
 @media (max-width: 760px) {
   .portal-shell, .ayah-shell { padding: 0 14px 50px; }
   .portal-header { height: 72px; }
@@ -803,7 +990,7 @@ button { color: inherit; }
   .ayah-hero { margin: 42px auto 27px; }
   .ayah-card { border-radius: 18px; }
   .ayah-tabs button { padding: 17px 8px; font-size: 12px; }
-  #one-surah-panel, #custom-test-panel { padding: 25px 14px 0; }
+  #one-surah-panel, #custom-test-panel, #surah-facts-panel { padding: 25px 14px 0; }
   .ayah-setup-heading { align-items: flex-start; margin-bottom: 18px; }
   .ayah-setup-heading h2 { font-size: 25px; }
   .ayah-setup-heading > p { display: none; }
@@ -870,6 +1057,8 @@ button { color: inherit; }
 .tafsir-study-head span { color: rgba(23,51,43,.53); font-size: 11px; }
 .tafsir-overview { display: grid; grid-template-columns: 1fr auto; gap: 25px; align-items: center; padding: 38px 45px 25px; }
 .tafsir-overview h2 { margin: 0 0 12px; font-family: Georgia, serif; font-size: 38px; font-weight: 500; }
+.tafsir-overview-theme { max-width: 720px; margin: 0 0 11px; color: var(--forest); font-size: 15px; line-height: 1.5; }
+.tafsir-overview-theme strong { color: var(--orange); font-weight: 850; }
 .tafsir-overview > div > p:last-child { max-width: 680px; margin: 0; color: rgba(23,51,43,.66); font-size: 14px; line-height: 1.65; }
 .tafsir-title-arabic { color: #8f432b; font-family: "Uthmanic Hafs", "Geeza Pro", serif; font-size: 62px; line-height: 1.4; }
 .tafsir-theme { display: grid; gap: 5px; margin: 0 45px 28px; padding: 17px 20px; border-left: 4px solid var(--orange); border-radius: 0 11px 11px 0; background: #f7eee7; }

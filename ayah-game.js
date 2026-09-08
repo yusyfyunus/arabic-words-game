@@ -2,7 +2,9 @@ const portalViews = {
   home: document.getElementById("portal-home"),
   words: document.getElementById("words-app"),
   ayahs: document.getElementById("ayah-app"),
-  tafsir: document.getElementById("tafsir-app")
+  tafsir: document.getElementById("tafsir-app"),
+  daily: document.getElementById("daily-app"),
+  continue: document.getElementById("continue-app")
 };
 
 function openProject(name) {
@@ -17,6 +19,9 @@ function openProject(name) {
     document.getElementById("ayah-setup").hidden = false;
     setAyahTab("single");
     requestAnimationFrame(() => { document.getElementById("surah-grid").scrollTop = 0; });
+  }
+  if (name === "daily" && typeof renderDailySetup === "function") {
+    renderDailySetup();
   }
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -44,6 +49,10 @@ const allAyahs = JUZ30_SURAHS.flatMap((surah) => surah.ayahs.map((ayah) => {
   ayahById.set(`${surah.number}:${ayah.number}`, item);
   return item;
 }));
+
+const SURAH_FACT_SURAHS = JUZ30_SURAHS
+  .filter((surah) => surah.number >= 103 && surah.number <= 114)
+  .sort((a, b) => b.number - a.number);
 
 const ayahElement = (id) => document.getElementById(id);
 const escapeText = (value) => String(value)
@@ -83,9 +92,18 @@ function surahCard(surah, custom = false) {
   </button>`;
 }
 
+function surahFactCard(surah) {
+  return `<article class="surah-card surah-fact-card">
+    <span class="surah-number">${surah.number}</span>
+    <span class="surah-card-copy"><strong>${escapeText(surah.name)}</strong><small>${escapeText(surah.meaning)} · ${ayahCountText(surah.ayahs.length)}</small></span>
+    <span class="surah-arabic" dir="rtl" lang="ar">${escapeText(surah.arabicName)}</span>
+  </article>`;
+}
+
 function renderSurahPickers() {
   ayahElement("surah-grid").innerHTML = JUZ30_SURAHS.map((surah) => surahCard(surah)).join("");
   ayahElement("custom-surah-grid").innerHTML = JUZ30_SURAHS.map((surah) => surahCard(surah, true)).join("");
+  ayahElement("surah-facts-grid").innerHTML = SURAH_FACT_SURAHS.map(surahFactCard).join("");
 
   document.querySelectorAll("[data-surah]").forEach((button) => button.addEventListener("click", () => {
     ayahState.singleSurah = Number(button.dataset.surah);
@@ -119,10 +137,13 @@ function updateAyahSetup() {
 
 function setAyahTab(tab) {
   const single = tab === "single";
+  const custom = tab === "custom";
   ayahElement("tab-one-surah").classList.toggle("active", single);
-  ayahElement("tab-custom-test").classList.toggle("active", !single);
+  ayahElement("tab-custom-test").classList.toggle("active", custom);
+  ayahElement("tab-surah-facts").classList.toggle("active", tab === "facts");
   ayahElement("one-surah-panel").hidden = !single;
-  ayahElement("custom-test-panel").hidden = single;
+  ayahElement("custom-test-panel").hidden = !custom;
+  ayahElement("surah-facts-panel").hidden = tab !== "facts";
 }
 
 function buildAyahDeck(surahs) {
@@ -159,6 +180,18 @@ function buildAyahDeck(surahs) {
   ]);
 }
 
+function buildSurahFactsDeck(surahs) {
+  return shuffleAyahs(surahs.map((surah) => ({
+    type: "surah-facts",
+    surahNumber: surah.number,
+    surahName: surah.name,
+    arabicSurahName: surah.arabicName,
+    meaning: surah.meaning,
+    correctCount: surah.ayahs.length,
+    correctValue: `${surah.number} — ${ayahCountText(surah.ayahs.length)}`
+  })));
+}
+
 function startAyahTest(surahs, source) {
   ayahState.selectedSurahs = surahs;
   ayahState.deck = buildAyahDeck(surahs);
@@ -167,6 +200,21 @@ function startAyahTest(surahs, source) {
   ayahState.errors = [];
   ayahState.source = source;
   ayahElement("exit-ayah-test").textContent = source === "full-juz" ? "← К разделам" : "← К выбору сур";
+  ayahElement("ayah-setup").hidden = true;
+  ayahElement("ayah-result").hidden = true;
+  ayahElement("ayah-test").hidden = false;
+  renderAyahQuestion();
+  ayahElement("ayah-test").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function startSurahFactsTest() {
+  ayahState.selectedSurahs = SURAH_FACT_SURAHS;
+  ayahState.deck = buildSurahFactsDeck(SURAH_FACT_SURAHS);
+  ayahState.index = 0;
+  ayahState.score = 0;
+  ayahState.errors = [];
+  ayahState.source = "surah-facts";
+  ayahElement("exit-ayah-test").textContent = "← К номерам сур";
   ayahElement("ayah-setup").hidden = true;
   ayahElement("ayah-result").hidden = true;
   ayahElement("ayah-test").hidden = false;
@@ -209,13 +257,32 @@ function uniqueTextOptions(correctValue, candidates) {
 }
 
 function surahQuestionConfig(current) {
+  if (current.type === "surah-facts") {
+    return {
+      prompt: "Какая это сура по счёту и сколько в ней аятов?",
+      referenceStrong: "Номер + количество аятов",
+      display: current.arabicSurahName,
+      correctValue: current.correctValue,
+      options: uniqueTextOptions(current.correctValue, SURAH_FACT_SURAHS.map((surah) => `${surah.number} — ${surah.ayahs.length} ${ayahCountText(surah.ayahs.length).replace(/^\d+\s*/, "")}`))
+    };
+  }
+  if (current.type === "surah-number") {
+    return {
+      prompt: "Какой номер у этой суры?",
+      referenceStrong: "Номер суры",
+      display: current.arabicSurahName,
+      correctValue: current.correctValue,
+      options: uniqueTextOptions(current.correctValue, SURAH_FACT_SURAHS.map((surah) => String(surah.number)))
+    };
+  }
   if (current.type === "surah-count") {
+    const pool = ayahState.source === "surah-facts" ? SURAH_FACT_SURAHS : JUZ30_SURAHS;
     return {
       prompt: "Сколько аятов в этой суре?",
       referenceStrong: "Количество аятов",
       display: current.arabicSurahName,
       correctValue: current.correctValue,
-      options: uniqueTextOptions(current.correctValue, JUZ30_SURAHS.map((surah) => String(surah.ayahs.length)))
+      options: uniqueTextOptions(current.correctValue, pool.map((surah) => String(surah.ayahs.length)))
     };
   }
   return {
@@ -282,7 +349,11 @@ function renderAyahQuestion() {
 }
 
 function renderAyahFeedback(correct, current) {
-  const correctAnswer = current.type === "surah-count"
+  const correctAnswer = current.type === "surah-facts"
+    ? `<p class="feedback-arabic" dir="rtl" lang="ar">${escapeText(current.arabicSurahName)}</p><p>${escapeText(current.surahName)} — сура №${escapeText(current.surahNumber)}, ${escapeText(ayahCountText(current.correctCount))}</p>`
+    : current.type === "surah-number"
+    ? `<p class="feedback-arabic" dir="rtl" lang="ar">${escapeText(current.arabicSurahName)}</p><p>${escapeText(current.surahName)} — сура №${escapeText(current.correctValue)}</p>`
+    : current.type === "surah-count"
     ? `<p class="feedback-arabic" dir="rtl" lang="ar">${escapeText(current.arabicSurahName)}</p><p>${escapeText(current.surahName)} — ${escapeText(current.meaning)} · ${ayahCountText(Number(current.correctValue))}</p>`
     : current.type === "surah-name"
       ? `<p class="feedback-arabic" dir="rtl" lang="ar">${escapeText(current.arabicSurahName)}</p><p>${escapeText(current.correctValue)}</p>`
@@ -323,6 +394,23 @@ function renderAyahResult() {
 }
 
 function errorMarkup(error, index) {
+  if (error.type === "surah-facts") {
+    return `<article class="ayah-error-item"><span class="error-index">${index + 1}</span><div>
+      <small>Сура ${error.surahNumber} · номер и количество аятов</small>
+      <p class="error-arabic" dir="rtl" lang="ar">${escapeText(error.arabicSurahName)}</p>
+      <p><b>Правильно:</b> ${escapeText(error.correctValue)}</p>
+      <p class="chosen-wrong"><b>Выбрано:</b> ${escapeText(error.chosen)}</p>
+    </div></article>`;
+  }
+  
+  if (error.type === "surah-number") {
+    return `<article class="ayah-error-item"><span class="error-index">${index + 1}</span><div>
+      <small>Сура ${error.surahNumber} · номер суры</small>
+      <p class="error-arabic" dir="rtl" lang="ar">${escapeText(error.arabicSurahName)}</p>
+      <p><b>Правильно:</b> сура №${escapeText(error.correctValue)}</p>
+      <p class="chosen-wrong"><b>Выбрано:</b> ${escapeText(error.chosen)}</p>
+    </div></article>`;
+  }
   if (error.type === "surah-count") {
     return `<article class="ayah-error-item"><span class="error-index">${index + 1}</span><div>
       <small>Сура ${error.surahNumber}. ${escapeText(error.surahName)} · количество аятов</small>
@@ -355,12 +443,13 @@ function returnToAyahSetup() {
   ayahElement("ayah-test").hidden = true;
   ayahElement("ayah-result").hidden = true;
   ayahElement("ayah-setup").hidden = false;
-  setAyahTab(ayahState.source === "custom" ? "custom" : "single");
+  setAyahTab(ayahState.source === "custom" ? "custom" : ayahState.source === "surah-facts" ? "facts" : "single");
   ayahElement("ayah-setup").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 ayahElement("tab-one-surah").addEventListener("click", () => setAyahTab("single"));
 ayahElement("tab-custom-test").addEventListener("click", () => setAyahTab("custom"));
+ayahElement("tab-surah-facts").addEventListener("click", () => setAyahTab("facts"));
 ayahElement("select-all-surahs").addEventListener("click", () => {
   JUZ30_SURAHS.forEach((surah) => ayahState.customSurahs.add(surah.number));
   renderSurahPickers();
@@ -379,6 +468,7 @@ ayahElement("start-custom-test").addEventListener("click", () => {
   const selected = JUZ30_SURAHS.filter((surah) => ayahState.customSurahs.has(surah.number));
   if (selected.length) startAyahTest(selected, "custom");
 });
+ayahElement("start-surah-facts-test").addEventListener("click", startSurahFactsTest);
 ayahElement("exit-ayah-test").addEventListener("click", returnToAyahSetup);
 
 renderSurahPickers();
