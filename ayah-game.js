@@ -9,7 +9,7 @@ const portalViews = {
 
 function openProject(name) {
   const viewName = name === "full-juz" ? "ayahs" : name;
-  Object.entries(portalViews).forEach(([key, element]) => { element.hidden = key !== viewName; });
+  Object.entries(portalViews).forEach(([key, element]) => { if (element) element.hidden = key !== viewName; });
   if (name === "full-juz") {
     startAyahTest(JUZ30_SURAHS, "full-juz");
   }
