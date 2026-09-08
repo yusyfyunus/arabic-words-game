@@ -371,7 +371,11 @@ function renderContinueQuestion() {
     <div id="continue-next-wrap" hidden><button class="continue-next" id="continue-next">Следующий переход →</button></div>`;
 
   continueEl("continue-listen").addEventListener("click", () => {
-    playContinuePrompt({ surahNumber: current.surahNumber, number: current.fromNumber });
+    // После чтения сразу включаем микрофон на минуту — отдельная кнопка не нужна.
+    playContinuePrompt(
+      { surahNumber: current.surahNumber, number: current.fromNumber },
+      () => startContinueRecognition(true)
+    );
   });
   continueEl("continue-speak").addEventListener("click", () => startContinueRecognition(false));
   continueEl("continue-reveal").addEventListener("click", () => {
