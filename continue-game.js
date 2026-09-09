@@ -44,7 +44,7 @@ function buildContinueDeck() {
 
 let continueDeck = buildContinueDeck();
 
-const continueState = { index: 0, score: 0, errors: 0, mistakes: [], answered: false, autoAdvance: true, repeating: false, paused: false, recognitionActive: false, deck: continueDeck, recognition: null, audio: null, listenUntil: 0, speechTimer: null, minuteTimer: null, nextTimer: null };
+const continueState = { index: 0, score: 0, errors: 0, mistakes: [], answered: false, autoAdvance: true, repeating: false, paused: false, recognitionActive: false, deck: continueDeck, recognition: null, audio: null, audioContext: null, audioBuffers: new Map(), microphonePrimed: false, listenUntil: 0, speechTimer: null, minuteTimer: null, nextTimer: null };
 const continueEl = (id) => document.getElementById(id);
 const continueEscape = (value) => String(value)
   .replaceAll("&", "&amp;")
@@ -66,31 +66,70 @@ function speakContinueArabic(text, onEnd) {
 
 function stopContinueAudio() {
   if (!continueState.audio) return;
-  continueState.audio.pause();
-  continueState.audio.currentTime = 0;
+  continueState.audio.onended = null;
+  try { continueState.audio.stop(0); } catch (error) { /* запись уже закончилась */ }
+  try { continueState.audio.disconnect(); } catch (error) { /* источник уже отключён */ }
   continueState.audio = null;
+}
+
+function getContinueAudioContext() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  if (!continueState.audioContext) continueState.audioContext = new AudioContextClass();
+  if (continueState.audioContext.state === "suspended") {
+    continueState.audioContext.resume().catch(() => {});
+  }
+  return continueState.audioContext;
+}
+
+function primeContinueMicrophone() {
+  if (continueState.microphonePrimed || !navigator.mediaDevices?.getUserMedia) return;
+  continueState.microphonePrimed = true;
+  navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+    stream.getTracks().forEach((track) => track.stop());
+  }).catch(() => {
+    // Подробное сообщение покажет SpeechRecognition при запуске проверки.
+    continueState.microphonePrimed = false;
+  });
 }
 
 function continueAyahAudioUrl(surahNumber, ayahNumber) {
   return `${AYMAN_SOWAID_AUDIO_BASE}${String(surahNumber).padStart(3, "0")}${String(ayahNumber).padStart(3, "0")}.mp3`;
 }
 
-function playContinueAyah(ayah, onEnd, onError) {
+async function playContinueAyah(ayah, onEnd, onError) {
   stopContinueAudio();
-  const audio = new Audio(continueAyahAudioUrl(ayah.surahNumber, ayah.number));
-  continueState.audio = audio;
-  audio.preload = "auto";
-  audio.onended = () => {
-    continueState.audio = null;
-    onEnd?.();
-  };
-  audio.onerror = () => {
+  const context = getContinueAudioContext();
+  if (!context) {
+    onError?.();
+    return false;
+  }
+  const url = continueAyahAudioUrl(ayah.surahNumber, ayah.number);
+  try {
+    let buffer = continueState.audioBuffers.get(url);
+    if (!buffer) {
+      const response = await fetch(url, { cache: "force-cache" });
+      if (!response.ok) throw new Error(`Audio ${response.status}`);
+      buffer = await context.decodeAudioData(await response.arrayBuffer());
+      continueState.audioBuffers.set(url, buffer);
+    }
+    if (context.state === "suspended") await context.resume();
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    source.connect(context.destination);
+    source.onended = () => {
+      if (continueState.audio === source) continueState.audio = null;
+      try { source.disconnect(); } catch (error) { /* источник уже отключён */ }
+      onEnd?.();
+    };
+    continueState.audio = source;
+    source.start(0);
+    return true;
+  } catch (error) {
     continueState.audio = null;
     onError?.();
-  };
-  const promise = audio.play();
-  if (promise?.catch) promise.catch(() => onError?.());
-  return true;
+    return false;
+  }
 }
 
 function playContinuePrompt(ayah, onEnd) {
@@ -149,6 +188,12 @@ function recitationSimilarity(spoken, expected) {
 
 function getRecognitionConstructor() {
   return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+}
+
+function isContinueIOS() {
+  const userAgent = navigator.userAgent || "";
+  return /iPad|iPhone|iPod/.test(userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
 
 function isContinueRepeatCommand(text) {
@@ -228,10 +273,12 @@ function startContinueRecognition(automatic = false) {
   continueState.recognition = recognition;
   recognition.lang = "ar-SA";
   recognition.interimResults = false;
-  recognition.continuous = true;
+  // В Safari на iPhone короткие отдельные сеансы работают устойчивее.
+  recognition.continuous = !isContinueIOS();
   recognition.maxAlternatives = 1;
   continueState.listenUntil = Date.now() + 60000;
   let spokenParts = [];
+  let allowRestart = true;
   recognition.onstart = () => {
     continueState.recognitionActive = true;
     button.classList.add("listening");
@@ -244,9 +291,12 @@ function startContinueRecognition(automatic = false) {
     button.classList.remove("listening");
     button.textContent = "🎙️ Говорить продолжение";
     clearTimeout(continueState.speechTimer);
-    clearTimeout(continueState.minuteTimer);
-    // При запрете/сетевой ошибке не перезапускаем микрофон бесконечно.
-    if (event.error !== "no-speech") continueState.autoAdvance = false;
+    // При отсутствии речи сохраняем общий минутный таймер и пробуем слушать снова.
+    if (event.error !== "no-speech") {
+      clearTimeout(continueState.minuteTimer);
+      allowRestart = false;
+      continueState.autoAdvance = false;
+    }
     const messages = {
       "not-allowed": "Разреши доступ к микрофону в настройках браузера и нажми кнопку ещё раз.",
       "service-not-allowed": "Браузер запретил службу распознавания речи. Открой сайт через HTTPS в Chrome или Safari.",
@@ -264,17 +314,21 @@ function startContinueRecognition(automatic = false) {
     button.classList.remove("listening");
     button.textContent = "🎙️ Говорить продолжение";
     if (continueState.repeating) return;
-    if (!continueState.answered && (continueState.paused || (Date.now() < continueState.listenUntil && automatic))) {
+    if (allowRestart && !continueState.answered && (continueState.paused || (Date.now() < continueState.listenUntil && automatic))) {
       setTimeout(() => {
         try { recognition.start(); } catch (error) { /* браузер уже завершил слушание */ }
       }, 120);
     }
   };
   recognition.onresult = (event) => {
-    const finalText = [...event.results]
-      .filter((result) => result.isFinal)
-      .map((result) => result[0].transcript)
-      .join(" ");
+    // SpeechRecognitionResultList в Safari не является обычным массивом.
+    const finalParts = [];
+    const firstResult = Number.isInteger(event.resultIndex) ? event.resultIndex : 0;
+    for (let index = firstResult; index < event.results.length; index += 1) {
+      const result = event.results[index];
+      if (result.isFinal && result[0]?.transcript) finalParts.push(result[0].transcript);
+    }
+    const finalText = finalParts.join(" ");
     if (!finalText) return;
     if (continueState.paused) {
       if (isContinueResumeCommand(finalText)) resumeContinueListening();
@@ -403,6 +457,10 @@ function advanceContinueQuestion() {
 }
 
 function startContinueTest() {
+  // Эти вызовы происходят прямо по нажатию пользователя: Safari разрешает
+  // аудио и один раз запрашивает доступ к микрофону до начала упражнения.
+  getContinueAudioContext();
+  primeContinueMicrophone();
   continueState.index = 0;
   continueState.score = 0;
   continueState.errors = 0;
