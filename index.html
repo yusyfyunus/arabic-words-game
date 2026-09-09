@@ -213,6 +213,7 @@
         </div>
         <p class="continue-compatibility">Переходы перемешиваются между всеми сурами: подряд одна сура не идёт. Аудио Аймана Сувайда хранится в сайте и работает без интернета. Во время ответа скажи «повтори аят», «подожди» или «продолжай» — запись повторится, отсчёт остановится или возобновится. Для проверки голосом открой сайт через localhost или HTTPS и разреши доступ к микрофону. Само распознавание речи может зависеть от поддержки браузера.</p>
         <div class="continue-start-row"><strong>46 переходов · суры 114–104</strong><button id="start-continue-test">Начать занятие →</button></div>
+        <p class="continue-permission-status" id="continue-permission-status">При первом запуске Safari попросит разрешить микрофон.</p>
       </div>
       <div id="continue-test" hidden>
         <div class="continue-test-head">
@@ -231,7 +232,7 @@
   <script src="game.js?v=20260901-1"></script>
   <script src="ayah-game.js?v=20260907-1"></script>
   <script src="daily-game.js?v=20260907-1"></script>
-  <script src="continue-game.js?v=20260909-12"></script>
+  <script src="continue-game.js?v=20260909-13"></script>
   <script>
     if ("serviceWorker" in navigator && location.protocol === "https:") {
       navigator.serviceWorker.register("./sw.js").catch(() => {});

@@ -88,6 +88,8 @@ const continueState = {
   audio: null,
   audioPlayer: null,
   audioToken: 0,
+  microphonePermissionPromise: null,
+  microphonePermission: "unknown",
   listenUntil: 0,
   speechTimer: null,
   minuteTimer: null,
@@ -171,6 +173,36 @@ function playContinuePrompt(ayah, onEnd) {
   });
 }
 
+function prepareContinueMicrophone() {
+  if (continueState.microphonePermissionPromise) return continueState.microphonePermissionPromise;
+  const setupStatus = continueEl("continue-permission-status");
+  if (!navigator.mediaDevices?.getUserMedia) {
+    continueState.microphonePermission = "unsupported";
+    if (setupStatus) setupStatus.textContent = "Safari не дал доступ к микрофону. Проверь разрешение сайта в настройках Safari.";
+    return Promise.resolve(false);
+  }
+  if (setupStatus) setupStatus.textContent = "Разреши Safari доступ к микрофону — это нужно только при первом запуске.";
+  continueState.microphonePermissionPromise = navigator.mediaDevices.getUserMedia({ audio: true })
+    .then((stream) => {
+      stream.getTracks().forEach((track) => track.stop());
+      continueState.microphonePermission = "granted";
+      if (setupStatus) setupStatus.textContent = "Микрофон разрешён. После чтения аята он включится автоматически.";
+      return true;
+    })
+    .catch(() => {
+      continueState.microphonePermission = "denied";
+      if (setupStatus) setupStatus.textContent = "Микрофон запрещён. На iPhone: aA → Настройки веб-сайта → Микрофон → Разрешить.";
+      continueState.microphonePermissionPromise = null;
+      return false;
+    });
+  return continueState.microphonePermissionPromise;
+}
+
+function beginContinueListeningAfterPrompt(automatic = true) {
+  const permission = continueState.microphonePermissionPromise || Promise.resolve(true);
+  permission.then(() => setTimeout(() => startContinueRecognition(automatic), 650));
+}
+
 function saveContinueSession(phase = "test") {
   try {
     localStorage.setItem(CONTINUE_SESSION_KEY, JSON.stringify({
@@ -211,7 +243,7 @@ function repeatCurrentContinueAyah() {
   continueEl("continue-voice-status").textContent = "Повторяю аят. После записи у тебя снова будет 1 минута для ответа.";
   playContinuePrompt({ surahNumber: current.surahNumber, number: current.fromNumber }, () => {
     continueState.repeating = false;
-    setTimeout(() => startContinueRecognition(continueState.autoAdvance), 650);
+    beginContinueListeningAfterPrompt(continueState.autoAdvance);
   });
 }
 
@@ -559,9 +591,10 @@ function renderContinueQuestion(options = {}) {
 
   continueEl("continue-listen").addEventListener("click", () => {
     // После чтения сразу включаем микрофон на минуту — отдельная кнопка не нужна.
+    prepareContinueMicrophone();
     playContinuePrompt(
       { surahNumber: current.surahNumber, number: current.fromNumber },
-      () => setTimeout(() => startContinueRecognition(true), 650)
+      () => beginContinueListeningAfterPrompt(true)
     );
   });
   continueEl("continue-speak").addEventListener("click", () => startContinueRecognition(false));
@@ -582,7 +615,7 @@ function renderContinueQuestion(options = {}) {
   if (autoPlay && continueEl("continue-auto-speak").checked) {
     playContinuePrompt(
       { surahNumber: current.surahNumber, number: current.fromNumber },
-      () => setTimeout(() => startContinueRecognition(true), 650)
+      () => beginContinueListeningAfterPrompt(true)
     );
   }
 }
@@ -704,7 +737,12 @@ function restoreContinueSession() {
   }
 }
 
-continueEl("start-continue-test").addEventListener("click", startContinueTest);
+continueEl("start-continue-test").addEventListener("click", () => {
+  // iPhone Safari надёжно показывает системный запрос только внутри нажатия.
+  // Запрашиваем доступ здесь, а после этого все задания идут без дополнительных кнопок.
+  prepareContinueMicrophone();
+  startContinueTest();
+});
 continueEl("exit-continue-test").addEventListener("click", returnToContinueSetup);
 continueEl("continue-auto-speak").addEventListener("change", () => {
   if (!continueEl("continue-auto-speak").checked) {
