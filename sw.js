@@ -1,4 +1,4 @@
-const CACHE_NAME = "kalimat-trainer-20260909-15";
+const CACHE_NAME = "kalimat-trainer-20260909-16";
 const SURAH_COUNTS = { 104: 9, 105: 5, 106: 4, 107: 7, 108: 3, 109: 6, 110: 3, 111: 5, 112: 4, 113: 5, 114: 6 };
 const AUDIO_ASSETS = Object.entries(SURAH_COUNTS).flatMap(([surah, count]) =>
   Array.from({ length: count }, (_, index) => `./audio/ayman-suwaid/${surah}${String(index + 1).padStart(3, "0")}.mp3`)
@@ -45,6 +45,20 @@ self.addEventListener("fetch", (event) => {
           return response;
         })
         .catch(() => caches.match("./index.html"))
+    );
+    return;
+  }
+  if (["script", "style"].includes(event.request.destination)) {
+    event.respondWith(
+      fetch(event.request, { cache: "no-store" })
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request, { ignoreSearch: true }))
     );
     return;
   }
