@@ -82,6 +82,7 @@ const continueState = {
   recognitionActive: false,
   deck: continueDeck,
   recognition: null,
+  recognitionLanguage: "ar-SA",
   recognitionGeneration: 0,
   recognitionRestartTimer: null,
   spokenParts: [],
@@ -405,7 +406,7 @@ function handleContinueTranscript(finalText, generation, automatic) {
   clearTimeout(continueState.speechTimer);
   continueState.speechTimer = setTimeout(
     () => evaluateContinueRecitation(continueState.spokenParts.join(" ")),
-    2200
+    1200
   );
 }
 
@@ -416,14 +417,18 @@ function launchContinueRecognition(generation, automatic) {
   if (!Recognition || generation !== continueState.recognitionGeneration || continueState.answered) return;
   const recognition = new Recognition();
   continueState.recognition = recognition;
-  recognition.lang = continueState.paused ? "ru-RU" : "ar-SA";
-  recognition.interimResults = false;
+  recognition.lang = continueState.paused ? "ru-RU" : continueState.recognitionLanguage;
+  // Safari на iPhone нередко возвращает услышанный текст как interim и
+  // завершает короткий сеанс без отдельного final-события.
+  recognition.interimResults = true;
   // Короткий новый сеанс при каждом перезапуске устойчивее на iPhone,
   // чем повторный start() у уже завершившегося объекта.
   recognition.continuous = false;
   recognition.maxAlternatives = 3;
   let lastError = "";
   let receivedResult = false;
+  let bestTranscript = "";
+  let transcriptCommitted = false;
   recognition.onstart = () => {
     if (generation !== continueState.recognitionGeneration) return;
     continueState.recognitionActive = true;
@@ -437,16 +442,24 @@ function launchContinueRecognition(generation, automatic) {
   recognition.onerror = (event) => {
     if (generation !== continueState.recognitionGeneration) return;
     lastError = event.error || "unknown";
+    const needsArabicFallback = lastError === "language-not-supported"
+      && !continueState.paused
+      && continueState.recognitionLanguage !== "ar";
+    if (needsArabicFallback) {
+      continueState.recognitionLanguage = "ar";
+      lastError = "language-fallback";
+    }
     continueState.recognitionActive = false;
     button.classList.remove("listening");
     button.textContent = "🎙️ Говорить продолжение";
     clearTimeout(continueState.speechTimer);
-    const recoverable = lastError === "no-speech" || lastError === "aborted";
+    const recoverable = lastError === "no-speech" || lastError === "aborted" || lastError === "language-fallback";
     if (!recoverable) {
       clearTimeout(continueState.minuteTimer);
       continueState.autoAdvance = false;
     }
-    if (lastError !== "aborted") status.textContent = continueRecognitionErrorMessage(lastError);
+    if (lastError === "language-fallback") status.textContent = "Переключаю Safari на общий арабский язык и продолжаю слушать.";
+    else if (lastError !== "aborted") status.textContent = continueRecognitionErrorMessage(lastError);
     button.hidden = recoverable && automatic;
     continueEl("continue-reveal").hidden = recoverable;
   };
@@ -457,21 +470,41 @@ function launchContinueRecognition(generation, automatic) {
     button.classList.remove("listening");
     button.textContent = "🎙️ Говорить продолжение";
     if (continueState.repeating) return;
+    if (bestTranscript && !transcriptCommitted && !continueState.speechTimer) {
+      transcriptCommitted = true;
+      handleContinueTranscript(bestTranscript, generation, automatic);
+      return;
+    }
     if (receivedResult || continueState.speechTimer) return;
-    const recoverable = !lastError || lastError === "no-speech" || lastError === "aborted";
+    const recoverable = !lastError || lastError === "no-speech" || lastError === "aborted" || lastError === "language-fallback";
     if (recoverable) scheduleContinueRecognition(generation, automatic, lastError === "aborted" ? 900 : 650);
   };
   recognition.onresult = (event) => {
     if (generation !== continueState.recognitionGeneration) return;
+    const heardParts = [];
     const finalParts = [];
     const firstResult = Number.isInteger(event.resultIndex) ? event.resultIndex : 0;
     for (let index = firstResult; index < event.results.length; index += 1) {
       const result = event.results[index];
+      if (result[0]?.transcript) heardParts.push(result[0].transcript);
       if (result.isFinal && result[0]?.transcript) finalParts.push(result[0].transcript);
     }
+    const heardText = heardParts.join(" ").trim();
+    if (heardText) {
+      receivedResult = true;
+      bestTranscript = heardText;
+      status.textContent = `Safari услышал: «${heardText}». Проверяю ответ…`;
+      clearTimeout(continueState.speechTimer);
+      continueState.speechTimer = setTimeout(() => {
+        if (transcriptCommitted || generation !== continueState.recognitionGeneration || continueState.answered) return;
+        transcriptCommitted = true;
+        continueState.speechTimer = null;
+        handleContinueTranscript(bestTranscript, generation, automatic);
+      }, 1600);
+    }
     const finalText = finalParts.join(" ");
-    if (!finalText) return;
-    receivedResult = true;
+    if (!finalText || transcriptCommitted) return;
+    transcriptCommitted = true;
     handleContinueTranscript(finalText, generation, automatic);
   };
   try { recognition.start(); } catch (error) {
