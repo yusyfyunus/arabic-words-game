@@ -6,8 +6,10 @@ const portalViews = {
   daily: document.getElementById("daily-app"),
   continue: document.getElementById("continue-app")
 };
+const ACTIVE_PROJECT_KEY = "kalimat-active-project-v1";
 
-function openProject(name) {
+function openProject(name, options = {}) {
+  const { remember = true, scrollBehavior = "smooth" } = options;
   const viewName = name === "full-juz" ? "ayahs" : name;
   Object.entries(portalViews).forEach(([key, element]) => { if (element) element.hidden = key !== viewName; });
   if (name === "full-juz") {
@@ -23,7 +25,10 @@ function openProject(name) {
   if (name === "daily" && typeof renderDailySetup === "function") {
     renderDailySetup();
   }
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (remember) {
+    try { localStorage.setItem(ACTIVE_PROJECT_KEY, viewName); } catch (error) { /* хранилище может быть недоступно */ }
+  }
+  window.scrollTo({ top: 0, behavior: scrollBehavior });
 }
 
 document.querySelectorAll("[data-open-project]").forEach((button) => {
@@ -473,3 +478,9 @@ ayahElement("exit-ayah-test").addEventListener("click", returnToAyahSetup);
 
 renderSurahPickers();
 updateAyahSetup();
+
+document.addEventListener("DOMContentLoaded", () => {
+  let savedProject = "home";
+  try { savedProject = localStorage.getItem(ACTIVE_PROJECT_KEY) || "home"; } catch (error) { /* оставляем главную */ }
+  if (portalViews[savedProject]) openProject(savedProject, { remember: false, scrollBehavior: "auto" });
+});

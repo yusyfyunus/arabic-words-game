@@ -4,6 +4,7 @@ const CONTINUE_SURAHS = JUZ30_SURAHS
   .filter((surah) => surah.number >= 104 && surah.number <= 114)
   .sort((a, b) => b.number - a.number);
 const AYMAN_SOWAID_AUDIO_BASE = "audio/ayman-suwaid/";
+const CONTINUE_SESSION_KEY = "kalimat-continue-session-v2";
 
 function shuffleContinueItems(items) {
   const result = [...items];
@@ -44,7 +45,29 @@ function buildContinueDeck() {
 
 let continueDeck = buildContinueDeck();
 
-const continueState = { index: 0, score: 0, errors: 0, mistakes: [], answered: false, autoAdvance: true, repeating: false, paused: false, recognitionActive: false, deck: continueDeck, recognition: null, audio: null, audioContext: null, audioBuffers: new Map(), microphonePrimed: false, listenUntil: 0, speechTimer: null, minuteTimer: null, nextTimer: null };
+const continueState = {
+  index: 0,
+  score: 0,
+  errors: 0,
+  mistakes: [],
+  answered: false,
+  autoAdvance: true,
+  repeating: false,
+  paused: false,
+  recognitionActive: false,
+  deck: continueDeck,
+  recognition: null,
+  recognitionGeneration: 0,
+  recognitionRestartTimer: null,
+  spokenParts: [],
+  audio: null,
+  audioPlayer: null,
+  audioToken: 0,
+  listenUntil: 0,
+  speechTimer: null,
+  minuteTimer: null,
+  nextTimer: null
+};
 const continueEl = (id) => document.getElementById(id);
 const continueEscape = (value) => String(value)
   .replaceAll("&", "&amp;")
@@ -65,73 +88,51 @@ function speakContinueArabic(text, onEnd) {
 }
 
 function stopContinueAudio() {
+  continueState.audioToken += 1;
   if (!continueState.audio) return;
   continueState.audio.onended = null;
-  try { continueState.audio.stop(0); } catch (error) { /* запись уже закончилась */ }
-  try { continueState.audio.disconnect(); } catch (error) { /* источник уже отключён */ }
+  continueState.audio.onerror = null;
+  try { continueState.audio.pause(); } catch (error) { /* запись уже закончилась */ }
+  try { continueState.audio.currentTime = 0; } catch (error) { /* Safari может запретить перемотку незагруженного файла */ }
   continueState.audio = null;
-}
-
-function getContinueAudioContext() {
-  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextClass) return null;
-  if (!continueState.audioContext) continueState.audioContext = new AudioContextClass();
-  if (continueState.audioContext.state === "suspended") {
-    continueState.audioContext.resume().catch(() => {});
-  }
-  return continueState.audioContext;
-}
-
-function primeContinueMicrophone() {
-  if (continueState.microphonePrimed || !navigator.mediaDevices?.getUserMedia) return Promise.resolve(true);
-  continueState.microphonePrimed = true;
-  return navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-    stream.getTracks().forEach((track) => track.stop());
-    return true;
-  }).catch(() => {
-    // Подробное сообщение покажет SpeechRecognition при запуске проверки.
-    continueState.microphonePrimed = false;
-    return false;
-  });
 }
 
 function continueAyahAudioUrl(surahNumber, ayahNumber) {
   return `${AYMAN_SOWAID_AUDIO_BASE}${String(surahNumber).padStart(3, "0")}${String(ayahNumber).padStart(3, "0")}.mp3`;
 }
 
-async function playContinueAyah(ayah, onEnd, onError) {
+function preloadContinueAyah(ayah) {
+  const audio = new Audio();
+  audio.preload = "auto";
+  audio.src = continueAyahAudioUrl(ayah.surahNumber, ayah.number);
+  audio.load();
+}
+
+function playContinueAyah(ayah, onEnd, onError) {
   stopContinueAudio();
-  const context = getContinueAudioContext();
-  if (!context) {
+  const token = continueState.audioToken;
+  const audio = continueState.audioPlayer || new Audio();
+  continueState.audioPlayer = audio;
+  audio.src = continueAyahAudioUrl(ayah.surahNumber, ayah.number);
+  audio.preload = "auto";
+  audio.playsInline = true;
+  continueState.audio = audio;
+  let failed = false;
+  const fail = () => {
+    if (failed || token !== continueState.audioToken) return;
+    failed = true;
+    if (continueState.audio === audio) continueState.audio = null;
     onError?.();
-    return false;
-  }
-  const url = continueAyahAudioUrl(ayah.surahNumber, ayah.number);
-  try {
-    let buffer = continueState.audioBuffers.get(url);
-    if (!buffer) {
-      const response = await fetch(url, { cache: "force-cache" });
-      if (!response.ok) throw new Error(`Audio ${response.status}`);
-      buffer = await context.decodeAudioData(await response.arrayBuffer());
-      continueState.audioBuffers.set(url, buffer);
-    }
-    if (context.state === "suspended") await context.resume();
-    const source = context.createBufferSource();
-    source.buffer = buffer;
-    source.connect(context.destination);
-    source.onended = () => {
-      if (continueState.audio === source) continueState.audio = null;
-      try { source.disconnect(); } catch (error) { /* источник уже отключён */ }
-      onEnd?.();
-    };
-    continueState.audio = source;
-    source.start(0);
-    return true;
-  } catch (error) {
-    continueState.audio = null;
-    onError?.();
-    return false;
-  }
+  };
+  audio.onended = () => {
+    if (token !== continueState.audioToken) return;
+    if (continueState.audio === audio) continueState.audio = null;
+    onEnd?.();
+  };
+  audio.onerror = fail;
+  const playPromise = audio.play();
+  if (playPromise?.catch) playPromise.catch(fail);
+  return true;
 }
 
 function playContinuePrompt(ayah, onEnd) {
@@ -140,9 +141,28 @@ function playContinuePrompt(ayah, onEnd) {
     if (status) status.textContent = "Локальная запись Аймана Сувайда не загрузилась. Обнови страницу и попробуй ещё раз.";
     if (continueState.repeating) {
       continueState.repeating = false;
-      startContinueRecognition(continueState.autoAdvance);
     }
+    onEnd?.();
   });
+}
+
+function saveContinueSession(phase = "test") {
+  try {
+    localStorage.setItem(CONTINUE_SESSION_KEY, JSON.stringify({
+      version: 2,
+      phase,
+      index: continueState.index,
+      score: continueState.score,
+      errors: continueState.errors,
+      mistakes: continueState.mistakes,
+      deck: continueState.deck,
+      savedAt: Date.now()
+    }));
+  } catch (error) { /* В приватном режиме хранилище может быть недоступно. */ }
+}
+
+function clearContinueSession() {
+  try { localStorage.removeItem(CONTINUE_SESSION_KEY); } catch (error) { /* ничего не делаем */ }
 }
 
 function repeatCurrentContinueAyah() {
@@ -153,11 +173,11 @@ function repeatCurrentContinueAyah() {
   continueState.listenUntil = Date.now() + 60000;
   const current = continueState.deck[continueState.index];
   continueState.repeating = true;
-  continueState.recognition?.stop();
+  stopContinueRecognition();
   continueEl("continue-voice-status").textContent = "Повторяю аят. После записи у тебя снова будет 1 минута для ответа.";
   playContinuePrompt({ surahNumber: current.surahNumber, number: current.fromNumber }, () => {
     continueState.repeating = false;
-    startContinueRecognition(continueState.autoAdvance);
+    setTimeout(() => startContinueRecognition(continueState.autoAdvance), 650);
   });
 }
 
@@ -237,100 +257,146 @@ function pauseContinueListening() {
   continueState.minuteTimer = null;
   continueState.paused = true;
   continueEl("continue-voice-status").textContent = "Пауза. Скажи «продолжай», когда будешь готова.";
+  stopContinueRecognition();
+  const generation = continueState.recognitionGeneration;
+  scheduleContinueRecognition(generation, true, 500);
 }
 
 function resumeContinueListening() {
   if (continueState.answered || !continueState.paused) return;
+  stopContinueRecognition();
   continueState.paused = false;
-  continueState.listenUntil = Date.now() + 60000;
   continueEl("continue-voice-status").textContent = "Продолжаем. У тебя снова 1 минута для ответа.";
-  continueState.minuteTimer = setTimeout(() => evaluateContinueRecitation(""), 60000);
-  if (!continueState.recognitionActive) startContinueRecognition(continueState.autoAdvance);
+  setTimeout(() => startContinueRecognition(continueState.autoAdvance), 500);
 }
 
 function clearContinueTimers() {
   clearTimeout(continueState.speechTimer);
   clearTimeout(continueState.minuteTimer);
   clearTimeout(continueState.nextTimer);
+  clearTimeout(continueState.recognitionRestartTimer);
   continueState.speechTimer = null;
   continueState.minuteTimer = null;
   continueState.nextTimer = null;
+  continueState.recognitionRestartTimer = null;
 }
 
-function startContinueRecognition(automatic = false) {
+function stopContinueRecognition() {
+  continueState.recognitionGeneration += 1;
+  clearTimeout(continueState.recognitionRestartTimer);
+  continueState.recognitionRestartTimer = null;
+  const recognition = continueState.recognition;
+  continueState.recognition = null;
+  continueState.recognitionActive = false;
+  if (!recognition) return;
+  recognition.onstart = null;
+  recognition.onerror = null;
+  recognition.onend = null;
+  recognition.onresult = null;
+  try { recognition.abort(); } catch (error) { /* сеанс уже завершён */ }
+}
+
+function continueRecognitionErrorMessage(error) {
+  const messages = {
+    "not-allowed": "Разреши микрофон для этого сайта в настройках браузера, затем нажми «Говорить продолжение».",
+    "service-not-allowed": "Браузер запретил распознавание речи. Открой публичный сайт через HTTPS в Safari или Chrome.",
+    "audio-capture": "Микрофон не найден или занят другим приложением. Закрой диктофон или звонок и попробуй снова.",
+    "no-speech": "Пока не услышала речь — продолжаю слушать.",
+    "network": "Служба распознавания речи сейчас недоступна. Проверь интернет: запись Аймана работает без него, но распознавание на iPhone требует соединения.",
+    "language-not-supported": "Этот браузер не распознаёт арабскую речь. Попробуй Safari или Chrome с языком арабского в настройках телефона."
+  };
+  return messages[error] || `Микрофон остановился (${error || "неизвестная ошибка"}). Нажми кнопку и попробуй ещё раз.`;
+}
+
+function shouldContinueRecognition(automatic) {
+  return !continueState.answered
+    && (continueState.paused || (automatic && Date.now() < continueState.listenUntil));
+}
+
+function scheduleContinueRecognition(generation, automatic, delay = 650) {
+  if (generation !== continueState.recognitionGeneration || !shouldContinueRecognition(automatic)) return;
+  clearTimeout(continueState.recognitionRestartTimer);
+  continueState.recognitionRestartTimer = setTimeout(() => {
+    launchContinueRecognition(generation, automatic);
+  }, delay);
+}
+
+function handleContinueTranscript(finalText, generation, automatic) {
+  if (!finalText || generation !== continueState.recognitionGeneration || continueState.answered) return;
+  if (continueState.paused) {
+    if (isContinueResumeCommand(finalText)) resumeContinueListening();
+    return;
+  }
+  if (isContinuePauseCommand(finalText)) {
+    pauseContinueListening();
+    return;
+  }
+  if (isContinueRepeatCommand(finalText)) {
+    repeatCurrentContinueAyah();
+    return;
+  }
+  continueState.spokenParts.push(finalText);
+  clearTimeout(continueState.speechTimer);
+  continueState.speechTimer = setTimeout(
+    () => evaluateContinueRecitation(continueState.spokenParts.join(" ")),
+    2200
+  );
+}
+
+function launchContinueRecognition(generation, automatic) {
   const Recognition = getRecognitionConstructor();
   const button = continueEl("continue-speak");
   const status = continueEl("continue-voice-status");
-  if (!Recognition) {
-    continueState.autoAdvance = false;
-    status.textContent = "Распознавание речи недоступно. Открой сайт через HTTPS или localhost, а не file://, и разреши микрофон.";
-    button.hidden = false;
-    continueEl("continue-reveal").hidden = false;
-    return;
-  }
-  clearContinueTimers();
-  continueState.autoAdvance = automatic;
-  if (continueState.recognition) {
-    const previousRecognition = continueState.recognition;
-    previousRecognition.onstart = null;
-    previousRecognition.onerror = null;
-    previousRecognition.onend = null;
-    previousRecognition.onresult = null;
-    try { previousRecognition.abort(); } catch (error) { /* прежний сеанс уже завершён */ }
-  }
+  if (!Recognition || generation !== continueState.recognitionGeneration || continueState.answered) return;
   const recognition = new Recognition();
   continueState.recognition = recognition;
-  recognition.lang = "ar-SA";
+  recognition.lang = continueState.paused ? "ru-RU" : "ar-SA";
   recognition.interimResults = false;
-  // В Safari на iPhone короткие отдельные сеансы работают устойчивее.
-  recognition.continuous = !isContinueIOS();
-  recognition.maxAlternatives = 1;
-  continueState.listenUntil = Date.now() + 60000;
-  let spokenParts = [];
-  let allowRestart = true;
+  // Короткий новый сеанс при каждом перезапуске устойчивее на iPhone,
+  // чем повторный start() у уже завершившегося объекта.
+  recognition.continuous = false;
+  recognition.maxAlternatives = 3;
+  let lastError = "";
+  let receivedResult = false;
   recognition.onstart = () => {
+    if (generation !== continueState.recognitionGeneration) return;
     continueState.recognitionActive = true;
     button.classList.add("listening");
     button.textContent = "◉ Слушаю…";
-    button.hidden = !automatic;
-    status.textContent = "Микрофон включён на 1 минуту. Произнеси следующий аят целиком.";
+    button.hidden = automatic;
+    status.textContent = continueState.paused
+      ? "Пауза. Скажи «продолжай», когда будешь готова."
+      : "Слушаю. Произнеси следующий аят целиком — у тебя есть 1 минута.";
   };
   recognition.onerror = (event) => {
+    if (generation !== continueState.recognitionGeneration) return;
+    lastError = event.error || "unknown";
     continueState.recognitionActive = false;
     button.classList.remove("listening");
     button.textContent = "🎙️ Говорить продолжение";
     clearTimeout(continueState.speechTimer);
-    // При отсутствии речи сохраняем общий минутный таймер и пробуем слушать снова.
-    if (event.error !== "no-speech") {
+    const recoverable = lastError === "no-speech" || lastError === "aborted";
+    if (!recoverable) {
       clearTimeout(continueState.minuteTimer);
-      allowRestart = false;
       continueState.autoAdvance = false;
     }
-    const messages = {
-      "not-allowed": "Разреши доступ к микрофону в настройках браузера и нажми кнопку ещё раз.",
-      "service-not-allowed": "Браузер запретил службу распознавания речи. Открой сайт через HTTPS в Chrome или Safari.",
-      "audio-capture": "Микрофон не найден или уже занят другим приложением.",
-      "no-speech": "Речь не услышана. Говори после появления надписи «Слушаю…».",
-      "network": "Служба распознавания недоступна. Проверь интернет и открой сайт не как file://, а через HTTPS.",
-      "language-not-supported": "Этот браузер не поддерживает распознавание арабской речи. Попробуй Chrome или Safari."
-    };
-    status.textContent = messages[event.error] || "Не удалось услышать ответ. Проверь микрофон и попробуй ещё раз.";
-    button.hidden = false;
-    continueEl("continue-reveal").hidden = false;
+    if (lastError !== "aborted") status.textContent = continueRecognitionErrorMessage(lastError);
+    button.hidden = recoverable && automatic;
+    continueEl("continue-reveal").hidden = recoverable;
   };
   recognition.onend = () => {
+    if (generation !== continueState.recognitionGeneration) return;
     continueState.recognitionActive = false;
+    if (continueState.recognition === recognition) continueState.recognition = null;
     button.classList.remove("listening");
     button.textContent = "🎙️ Говорить продолжение";
     if (continueState.repeating) return;
-    if (allowRestart && !continueState.answered && (continueState.paused || (Date.now() < continueState.listenUntil && automatic))) {
-      setTimeout(() => {
-        try { recognition.start(); } catch (error) { /* браузер уже завершил слушание */ }
-      }, 120);
-    }
+    if (receivedResult || continueState.speechTimer) return;
+    const recoverable = !lastError || lastError === "no-speech" || lastError === "aborted";
+    if (recoverable) scheduleContinueRecognition(generation, automatic, lastError === "aborted" ? 900 : 650);
   };
   recognition.onresult = (event) => {
-    // SpeechRecognitionResultList в Safari не является обычным массивом.
+    if (generation !== continueState.recognitionGeneration) return;
     const finalParts = [];
     const firstResult = Number.isInteger(event.resultIndex) ? event.resultIndex : 0;
     for (let index = firstResult; index < event.results.length; index += 1) {
@@ -339,28 +405,41 @@ function startContinueRecognition(automatic = false) {
     }
     const finalText = finalParts.join(" ");
     if (!finalText) return;
-    if (continueState.paused) {
-      if (isContinueResumeCommand(finalText)) resumeContinueListening();
-      return;
-    }
-    if (isContinuePauseCommand(finalText)) {
-      pauseContinueListening();
-      return;
-    }
-    if (isContinueRepeatCommand(finalText)) {
-      repeatCurrentContinueAyah();
-      return;
-    }
-    spokenParts.push(finalText);
-    clearTimeout(continueState.speechTimer);
-    continueState.speechTimer = setTimeout(() => evaluateContinueRecitation(spokenParts.join(" ")), 1800);
+    receivedResult = true;
+    handleContinueTranscript(finalText, generation, automatic);
   };
-  continueState.minuteTimer = setTimeout(() => evaluateContinueRecitation(spokenParts.join(" ")), 60000);
   try { recognition.start(); } catch (error) {
-    status.textContent = "Не удалось включить микрофон. Нажми кнопку ещё раз или проверь разрешение микрофона.";
+    if (generation !== continueState.recognitionGeneration) return;
+    continueState.recognition = null;
+    status.textContent = "Микрофон ещё запускается — пробую снова.";
+    scheduleContinueRecognition(generation, automatic, 900);
+  }
+}
+
+function startContinueRecognition(automatic = false) {
+  const Recognition = getRecognitionConstructor();
+  const button = continueEl("continue-speak");
+  const status = continueEl("continue-voice-status");
+  if (!Recognition) {
+    continueState.autoAdvance = false;
+    status.textContent = "Распознавание речи недоступно. Открой публичный сайт через HTTPS в Safari или Chrome и разреши микрофон.";
     button.hidden = false;
     continueEl("continue-reveal").hidden = false;
+    return;
   }
+  clearTimeout(continueState.speechTimer);
+  clearTimeout(continueState.minuteTimer);
+  clearTimeout(continueState.recognitionRestartTimer);
+  stopContinueRecognition();
+  continueState.autoAdvance = automatic;
+  continueState.spokenParts = [];
+  continueState.listenUntil = Date.now() + 60000;
+  const generation = continueState.recognitionGeneration;
+  continueState.minuteTimer = setTimeout(
+    () => evaluateContinueRecitation(continueState.spokenParts.join(" ")),
+    60000
+  );
+  launchContinueRecognition(generation, automatic);
 }
 
 function showContinueAnswer(correct, spoken, similarity) {
@@ -377,14 +456,21 @@ function showContinueAnswer(correct, spoken, similarity) {
     <p class="continue-match">Совпадение по словам: ${Math.round(similarity * 100)}%</p>`;
   continueEl("continue-answer-listen").addEventListener("click", () => playContinuePrompt({ surahNumber: current.surahNumber, number: current.nextNumber }));
   // Голосовая обратная связь: похвала за верный ответ или правильный аят для повторения.
-  if (correct) speakContinueArabic("مَا شَاءَ اللَّهُ");
-  else playContinuePrompt({ surahNumber: current.surahNumber, number: current.nextNumber });
   continueEl("continue-next-wrap").hidden = continueState.autoAdvance;
   if (continueState.autoAdvance) {
-    continueState.nextTimer = setTimeout(advanceContinueQuestion, correct ? 3600 : 5200);
-    continueEl("continue-voice-status").textContent = correct
-      ? "Ответ принят. Следующий аят начнётся автоматически."
-      : "Сравни ответ с правильным аятом. Следующий вопрос начнётся автоматически.";
+    if (correct) {
+      speakContinueArabic("مَا شَاءَ اللَّهُ");
+      continueState.nextTimer = setTimeout(advanceContinueQuestion, 3200);
+      continueEl("continue-voice-status").textContent = "Ответ принят. Ма ша Аллах! Следующий аят начнётся автоматически.";
+    } else {
+      continueEl("continue-voice-status").textContent = "Сейчас Айман Сувайд прочитает правильный аят, затем начнётся следующий вопрос.";
+      playContinuePrompt(
+        { surahNumber: current.surahNumber, number: current.nextNumber },
+        () => { continueState.nextTimer = setTimeout(advanceContinueQuestion, 900); }
+      );
+    }
+  } else if (!correct) {
+    playContinuePrompt({ surahNumber: current.surahNumber, number: current.nextNumber });
   }
 }
 
@@ -392,6 +478,7 @@ function evaluateContinueRecitation(spoken) {
   if (continueState.answered) return;
   if (!String(spoken || "").trim()) {
     continueState.autoAdvance = false;
+    stopContinueRecognition();
     continueEl("continue-voice-status").textContent = "Я не услышала ответ. Нажми «Говорить продолжение» и попробуй ещё раз.";
     continueEl("continue-speak").hidden = false;
     continueEl("continue-reveal").hidden = false;
@@ -399,7 +486,7 @@ function evaluateContinueRecitation(spoken) {
   }
   clearContinueTimers();
   continueState.answered = true;
-  continueState.recognition?.stop();
+  stopContinueRecognition();
   const current = continueState.deck[continueState.index];
   const similarity = recitationSimilarity(spoken, current.nextArabic);
   const correct = similarity >= 0.5;
@@ -408,11 +495,13 @@ function evaluateContinueRecitation(spoken) {
     continueState.errors += 1;
     continueState.mistakes.push({ ...current, spoken, similarity });
   }
+  saveContinueSession("test");
   continueEl("continue-score-label").textContent = `Получилось ${continueState.score}`;
   showContinueAnswer(correct, spoken, similarity);
 }
 
-function renderContinueQuestion() {
+function renderContinueQuestion(options = {}) {
+  const { autoPlay = true, restored = false } = options;
   const current = continueState.deck[continueState.index];
   continueState.answered = false;
   const progress = (continueState.index / continueState.deck.length) * 100;
@@ -429,7 +518,7 @@ function renderContinueQuestion() {
       <button class="continue-speak" id="continue-speak" hidden>🎙️ Говорить продолжение</button>
       <button class="continue-reveal" id="continue-reveal" hidden>Показать правильный аят</button>
     </div>
-    <p class="continue-voice-status" id="continue-voice-status">После озвучки микрофон включится автоматически на 1 минуту.</p>
+    <p class="continue-voice-status" id="continue-voice-status">${restored ? "Задание восстановлено после обновления. Нажми «Послушать аят» — затем микрофон включится сам." : "После озвучки микрофон включится автоматически на 1 минуту."}</p>
     <div class="continue-answer" id="continue-answer" hidden></div>
     <div id="continue-next-wrap" hidden><button class="continue-next" id="continue-next">Следующий переход →</button></div>`;
 
@@ -437,13 +526,13 @@ function renderContinueQuestion() {
     // После чтения сразу включаем микрофон на минуту — отдельная кнопка не нужна.
     playContinuePrompt(
       { surahNumber: current.surahNumber, number: current.fromNumber },
-      () => startContinueRecognition(true)
+      () => setTimeout(() => startContinueRecognition(true), 650)
     );
   });
   continueEl("continue-speak").addEventListener("click", () => startContinueRecognition(false));
   continueEl("continue-reveal").addEventListener("click", () => {
     clearContinueTimers();
-    continueState.recognition?.stop();
+    stopContinueRecognition();
     continueState.autoAdvance = false;
     if (!continueState.answered) {
       continueState.answered = true;
@@ -451,8 +540,12 @@ function renderContinueQuestion() {
     }
     showContinueAnswer(false, "", 0);
   });
-  if (continueEl("continue-auto-speak").checked) {
-    playContinuePrompt({ surahNumber: current.surahNumber, number: current.fromNumber }, () => startContinueRecognition(true));
+  preloadContinueAyah({ surahNumber: current.surahNumber, number: current.nextNumber });
+  if (autoPlay && continueEl("continue-auto-speak").checked) {
+    playContinuePrompt(
+      { surahNumber: current.surahNumber, number: current.fromNumber },
+      () => setTimeout(() => startContinueRecognition(true), 650)
+    );
   }
 }
 
@@ -460,16 +553,13 @@ function advanceContinueQuestion() {
   if (continueState.index === continueState.deck.length - 1) renderContinueResult();
   else {
     continueState.index += 1;
+    saveContinueSession("test");
     renderContinueQuestion();
     continueEl("continue-test").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 }
 
-async function startContinueTest() {
-  // Эти вызовы происходят прямо по нажатию пользователя: Safari разрешает
-  // аудио и один раз запрашивает доступ к микрофону до начала упражнения.
-  getContinueAudioContext();
-  await primeContinueMicrophone();
+function startContinueTest() {
   continueState.index = 0;
   continueState.score = 0;
   continueState.errors = 0;
@@ -481,6 +571,7 @@ async function startContinueTest() {
   continueEl("continue-setup").hidden = true;
   continueEl("continue-result").hidden = true;
   continueEl("continue-test").hidden = false;
+  saveContinueSession("test");
   renderContinueQuestion();
   continueEl("continue-test").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -490,10 +581,11 @@ function renderContinueResult() {
   const percent = Math.round((continueState.score / total) * 100);
   window.speechSynthesis?.cancel();
   stopContinueAudio();
+  stopContinueRecognition();
   continueEl("continue-test").hidden = true;
   continueEl("continue-result").hidden = false;
   const mistakesMarkup = continueState.mistakes.length
-    ? `<section class="continue-mistakes"><h3>Аяты для повторения</h3><p>Вот места, где ответ не совпал полностью:</p>${continueState.mistakes.map((mistake, index) => `<article class="continue-mistake"><div class="continue-mistake-meta">${index + 1}. Сура ${mistake.surahNumber}. ${continueEscape(mistake.surahName)} · после аята ${mistake.fromNumber} · повторить аят ${mistake.nextNumber}</div><p class="continue-mistake-arabic" dir="rtl" lang="ar">${continueEscape(mistake.nextArabic)}</p><p>${continueEscape(mistake.nextRussian)}</p><small>Твой ответ: ${continueEscape(mistake.spoken || "не распознан")}</small><button class="continue-mistake-listen" data-arabic="${continueEscape(mistake.nextArabic)}">🔊 Послушать аят</button></article>`).join("")}</section>`
+    ? `<section class="continue-mistakes"><h3>Аяты для повторения</h3><p>Вот места, где ответ не совпал полностью:</p>${continueState.mistakes.map((mistake, index) => `<article class="continue-mistake"><div class="continue-mistake-meta">${index + 1}. Сура ${mistake.surahNumber}. ${continueEscape(mistake.surahName)} · после аята ${mistake.fromNumber} · повторить аят ${mistake.nextNumber}</div><p class="continue-mistake-arabic" dir="rtl" lang="ar">${continueEscape(mistake.nextArabic)}</p><p>${continueEscape(mistake.nextRussian)}</p><small>Твой ответ: ${continueEscape(mistake.spoken || "не распознан")}</small><button class="continue-mistake-listen" data-surah="${mistake.surahNumber}" data-ayah="${mistake.nextNumber}">🔊 Послушать Аймана Сувайда</button></article>`).join("")}</section>`
     : `<section class="continue-mistakes continue-no-mistakes"><h3>Аяты для повторения</h3><p>Ошибок нет — сегодня повторять отдельные аяты не нужно.</p></section>`;
   continueEl("continue-result").innerHTML = `<div class="continue-result-screen">
     <p class="eyebrow">Занятие завершено</p>
@@ -505,10 +597,11 @@ function renderContinueResult() {
     <div class="result-actions"><button id="repeat-continue-test">↻ Повторить</button><button id="choose-continue-settings">К настройкам</button></div>
   </div>`;
   continueEl("continue-result").querySelectorAll(".continue-mistake-listen").forEach((button) => {
-    button.addEventListener("click", () => speakContinueArabic(button.dataset.arabic));
+    button.addEventListener("click", () => playContinuePrompt({ surahNumber: Number(button.dataset.surah), number: Number(button.dataset.ayah) }));
   });
   continueEl("repeat-continue-test").addEventListener("click", startContinueTest);
   continueEl("choose-continue-settings").addEventListener("click", returnToContinueSetup);
+  saveContinueSession("result");
   continueEl("continue-result").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -518,11 +611,44 @@ function returnToContinueSetup() {
   continueState.paused = false;
   window.speechSynthesis?.cancel();
   stopContinueAudio();
-  continueState.recognition?.abort();
+  stopContinueRecognition();
+  clearContinueSession();
   continueEl("continue-test").hidden = true;
   continueEl("continue-result").hidden = true;
   continueEl("continue-setup").hidden = false;
   continueEl("continue-setup").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function restoreContinueSession() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CONTINUE_SESSION_KEY) || "null");
+    const isRecent = saved?.savedAt && Date.now() - saved.savedAt < 14 * 24 * 60 * 60 * 1000;
+    const hasDeck = Array.isArray(saved?.deck) && saved.deck.length > 0;
+    const validIndex = Number.isInteger(saved?.index) && saved.index >= 0 && saved.index < saved.deck?.length;
+    if (saved?.version !== 2 || !isRecent || !hasDeck || !validIndex) return false;
+    continueState.deck = saved.deck;
+    continueState.index = saved.index;
+    continueState.score = Number(saved.score) || 0;
+    continueState.errors = Number(saved.errors) || 0;
+    continueState.mistakes = Array.isArray(saved.mistakes) ? saved.mistakes : [];
+    continueState.repeating = false;
+    continueState.paused = false;
+    continueState.autoAdvance = true;
+    continueEl("continue-setup").hidden = true;
+    if (saved.phase === "result") {
+      continueEl("continue-test").hidden = true;
+      continueEl("continue-result").hidden = false;
+      renderContinueResult();
+    } else {
+      continueEl("continue-result").hidden = true;
+      continueEl("continue-test").hidden = false;
+      renderContinueQuestion({ autoPlay: false, restored: true });
+    }
+    return true;
+  } catch (error) {
+    clearContinueSession();
+    return false;
+  }
 }
 
 continueEl("start-continue-test").addEventListener("click", startContinueTest);
@@ -542,3 +668,5 @@ document.addEventListener("click", (event) => {
     advanceContinueQuestion();
   }
 });
+
+restoreContinueSession();

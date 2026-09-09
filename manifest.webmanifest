@@ -1,0 +1,11 @@
+{
+  "name": "Тренажёр Корана",
+  "short_name": "Тренажёр",
+  "description": "Слова, переводы аятов, быстрые тесты и продолжение аятов 30-го джуза.",
+  "lang": "ru",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f2e8",
+  "theme_color": "#0d5d49"
+}
