@@ -59,6 +59,17 @@ const LESSONS = [{
   ["أَدْرَى", "Давать знать, осведомлять"], ["نَارٌ", "Огонь"], ["مُوقَدَةٌ", "Разожжённый"],
   ["فُؤَادٌ", "Сердце"], ["مُؤْصَدَةٌ", "Сомкнутый"]
   ].map(([arabic, russian]) => ({ arabic, russian }))
+}, {
+  id: "lesson-6",
+  title: "Урок 6",
+  words: [
+  ["أَلْهَى", "Отвлекать"], ["تَكَاثُرٌ", "Увеличение, количественный рост"], ["زَارَ", "Навещать"],
+  ["مَقْبَرٌ", "Могилы"], ["ثُمَّ", "Затем"], ["الْيَقِينُ", "Достоверное"],
+  ["رَأَى", "Видеть"], ["سَأَلَ", "Спрашивать"], ["نَعِيمٌ", "Блага"],
+  ["إِنْسَانٌ", "Человек"], ["خُسْرٌ", "Убыток"], ["آمَنَ", "Уверовать"],
+  ["عَمِلَ", "Совершать, делать"], ["صَالِحَاتٌ", "Благие дела"], ["الْحَقُّ", "Истина"],
+  ["صَبْرٌ", "Терпение"]
+  ].map(([arabic, russian]) => ({ arabic, russian }))
 }];
 
 const WORDS = LESSONS.flatMap((lesson) => lesson.words);
@@ -440,6 +451,7 @@ function reset(nextMode = mode, nextScope = scope) {
   $("scope-lesson3").classList.toggle("active", scope === "lesson-3");
   $("scope-lesson4").classList.toggle("active", scope === "lesson-4");
   $("scope-lesson5").classList.toggle("active", scope === "lesson-5");
+  $("scope-lesson6").classList.toggle("active", scope === "lesson-6");
   $("scope-all").classList.toggle("active", scope === "all");
   $("scope-hard").classList.toggle("active", scope === "hard");
   $("mode-translate").parentElement.hidden = scope === "hard";
@@ -463,6 +475,7 @@ $("scope-lesson2").addEventListener("click", () => scope !== "lesson-2" && reset
 $("scope-lesson3").addEventListener("click", () => scope !== "lesson-3" && reset(mode, "lesson-3"));
 $("scope-lesson4").addEventListener("click", () => scope !== "lesson-4" && reset(mode, "lesson-4"));
 $("scope-lesson5").addEventListener("click", () => scope !== "lesson-5" && reset(mode, "lesson-5"));
+$("scope-lesson6").addEventListener("click", () => scope !== "lesson-6" && reset(mode, "lesson-6"));
 $("scope-all").addEventListener("click", () => scope !== "all" && reset(mode, "all"));
 $("scope-hard").addEventListener("click", () => scope !== "hard" && reset(mode, "hard"));
 $("restart").addEventListener("click", () => reset());
