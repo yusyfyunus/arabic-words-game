@@ -1,5 +1,5 @@
 const DAILY_SURAHS = JUZ30_SURAHS
-  .filter((surah) => surah.number >= 104 && surah.number <= 114)
+  .filter((surah) => surah.number >= 102 && surah.number <= 114)
   .sort((a, b) => b.number - a.number);
 
 const DAILY_DAYS = 7;
