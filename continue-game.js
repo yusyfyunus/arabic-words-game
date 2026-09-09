@@ -101,6 +101,7 @@ const continueState = {
   repeating: false,
   paused: false,
   cuePlaying: false,
+  cueTranscript: "",
   recognitionActive: false,
   deck: continueDeck,
   recognition: null,
@@ -199,6 +200,33 @@ function unlockContinueAudio() {
     source.connect(context.destination);
     source.start(0);
   } catch (error) { /* Safari уже разрешил звук или не требует разблокировки */ }
+}
+
+function playContinueReadyTone(onEnd) {
+  const context = ensureContinueAudioContext();
+  if (!context) {
+    onEnd?.();
+    return;
+  }
+  try {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.frequency.value = 880;
+    gain.gain.setValueAtTime(0.0001, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.12, context.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.14);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.onended = () => {
+      try { oscillator.disconnect(); } catch (error) { /* уже отключён */ }
+      try { gain.disconnect(); } catch (error) { /* уже отключён */ }
+      onEnd?.();
+    };
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.16);
+  } catch (error) {
+    onEnd?.();
+  }
 }
 
 function loadContinueAudioBuffer(url) {
@@ -435,6 +463,43 @@ function recitationSimilarity(spoken, expected) {
   return Math.round(Math.min(coverage, precision) * 100) / 100;
 }
 
+function stripContinueCueFromTranscript(text) {
+  const current = continueState.deck[continueState.index];
+  const spoken = normalizeArabic(text);
+  if (!spoken || !current || current.isSurahStart) return spoken;
+  const cue = normalizeArabic(current.fromArabic);
+  const recognizedCue = normalizeArabic(continueState.cueTranscript);
+  const expectedWords = normalizeArabic(current.nextArabic).split(" ").filter(Boolean);
+  if (!cue || !expectedWords.length) return spoken;
+  if (recognizedCue && spoken === recognizedCue) return "";
+  if (recognizedCue && spoken.startsWith(`${recognizedCue} `)) {
+    return spoken.slice(recognizedCue.length).trim();
+  }
+  if (spoken === cue) return "";
+  if (spoken.startsWith(`${cue} `)) return spoken.slice(cue.length).trim();
+
+  // Иногда Safari соединяет конец записи Аймана с началом ответа в одном
+  // результате. Ищем начало ожидаемого аята и отбрасываем всё перед ним.
+  const words = spoken.split(" ").filter(Boolean);
+  let bestStart = -1;
+  let bestScore = 0;
+  let bestCoverage = 0;
+  for (let start = 0; start < words.length; start += 1) {
+    const suffix = words.slice(start);
+    const suffixSet = new Set(suffix);
+    const matched = expectedWords.filter((word) => suffixSet.has(word)).length;
+    const coverage = matched / expectedWords.length;
+    const precision = matched / suffix.length;
+    const score = coverage * 0.7 + precision * 0.3;
+    if (score > bestScore) {
+      bestScore = score;
+      bestCoverage = coverage;
+      bestStart = start;
+    }
+  }
+  return bestStart > 0 && bestCoverage >= 0.45 ? words.slice(bestStart).join(" ") : spoken;
+}
+
 function getRecognitionConstructor() {
   return window.SpeechRecognition || window.webkitSpeechRecognition || null;
 }
@@ -592,7 +657,9 @@ function handleContinueTranscript(finalText, generation, automatic) {
     repeatCurrentContinueAyah();
     return;
   }
-  continueState.spokenParts.push(finalText);
+  const answerText = stripContinueCueFromTranscript(finalText);
+  if (!answerText) return;
+  continueState.spokenParts.push(answerText);
   clearTimeout(continueState.speechTimer);
   continueState.speechTimer = setTimeout(
     () => evaluateContinueRecitation(continueState.spokenParts.join(" ")),
@@ -691,7 +758,14 @@ function launchContinueRecognition(generation, automatic, onStarted) {
     if (generation !== continueState.recognitionGeneration) return;
     // Safari уже слушает, пока играет вопрос. Его собственную запись не считаем
     // ответом пользователя; принимать речь начинаем только после окончания cue.
-    if (continueState.cuePlaying) return;
+    if (continueState.cuePlaying) {
+      const ignored = [];
+      for (let index = 0; index < event.results.length; index += 1) {
+        if (event.results[index]?.[0]?.transcript) ignored.push(event.results[index][0].transcript);
+      }
+      continueState.cueTranscript = ignored.join(" ").trim();
+      return;
+    }
     const heardParts = [];
     clearTimeout(continueState.recognitionWatchdogTimer);
     continueState.recognitionWatchdogTimer = null;
@@ -743,6 +817,7 @@ function startContinueRecognitionBeforeCue(current, automatic = true, afterCue) 
   continueState.autoAdvance = automatic;
   continueState.spokenParts = [];
   continueState.cuePlaying = true;
+  continueState.cueTranscript = "";
   continueState.listenUntil = Date.now() + 90000;
   const generation = continueState.recognitionGeneration;
   let cueStarted = false;
@@ -754,23 +829,27 @@ function startContinueRecognitionBeforeCue(current, automatic = true, afterCue) 
       : "Микрофон включён. Слушай аят Аймана Сувайда, затем продолжай.";
     playContinueQuestionCue(current, () => {
       if (generation !== continueState.recognitionGeneration || continueState.answered) return;
-      continueState.cuePlaying = false;
-      continueState.spokenParts = [];
-      continueState.listenUntil = Date.now() + 60000;
-      clearTimeout(continueState.minuteTimer);
-      continueState.minuteTimer = setTimeout(
-        () => evaluateContinueRecitation(continueState.spokenParts.join(" ")),
-        60000
-      );
-      if (status) status.textContent = "Слушаю тебя. Произнеси следующий аят целиком — у тебя есть 1 минута.";
-      const activeRecognition = continueState.recognition;
-      clearTimeout(continueState.recognitionWatchdogTimer);
-      continueState.recognitionWatchdogTimer = setTimeout(() => {
-        if (!continueState.spokenParts.length && !continueState.answered && activeRecognition) {
-          recoverHungContinueRecognition(generation, automatic, activeRecognition);
-        }
-      }, isContinueIOS() ? 15000 : 18000);
-      afterCue?.();
+      if (status) status.textContent = "Аят закончен. Дождись короткого сигнала и начинай читать после него.";
+      setTimeout(() => playContinueReadyTone(() => {
+        if (generation !== continueState.recognitionGeneration || continueState.answered) return;
+        continueState.cuePlaying = false;
+        continueState.spokenParts = [];
+        continueState.listenUntil = Date.now() + 60000;
+        clearTimeout(continueState.minuteTimer);
+        continueState.minuteTimer = setTimeout(
+          () => evaluateContinueRecitation(continueState.spokenParts.join(" ")),
+          60000
+        );
+        if (status) status.textContent = "Слушаю тебя. Произнеси следующий аят целиком — у тебя есть 1 минута.";
+        const activeRecognition = continueState.recognition;
+        clearTimeout(continueState.recognitionWatchdogTimer);
+        continueState.recognitionWatchdogTimer = setTimeout(() => {
+          if (!continueState.spokenParts.length && !continueState.answered && activeRecognition) {
+            recoverHungContinueRecognition(generation, automatic, activeRecognition);
+          }
+        }, isContinueIOS() ? 15000 : 18000);
+        afterCue?.();
+      }), 1800);
     });
   });
 }
@@ -868,6 +947,7 @@ function renderContinueQuestion(options = {}) {
   const current = continueState.deck[continueState.index];
   continueState.answered = false;
   continueState.cuePlaying = false;
+  continueState.cueTranscript = "";
   const progress = (continueState.index / continueState.deck.length) * 100;
   continueEl("continue-progress-label").textContent = `Задание ${continueState.index + 1} из ${continueState.deck.length}`;
   continueEl("continue-score-label").textContent = `Получилось ${continueState.score}`;
@@ -932,6 +1012,7 @@ function startContinueTest(autoPlay = true) {
   continueState.repeating = false;
   continueState.paused = false;
   continueState.cuePlaying = false;
+  continueState.cueTranscript = "";
   continueState.autoAdvance = true;
   continueState.deck = buildContinueDeck(continueState.completedIds);
   if (!continueState.deck.length) {
