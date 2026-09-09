@@ -5,6 +5,7 @@ const CONTINUE_SURAHS = JUZ30_SURAHS
   .sort((a, b) => b.number - a.number);
 const AYMAN_SOWAID_AUDIO_BASE = "audio/ayman-suwaid/";
 const CONTINUE_SESSION_KEY = "kalimat-continue-session-v2";
+const CONTINUE_CYCLE_KEY = "kalimat-continue-cycle-v1";
 
 function shuffleContinueItems(items) {
   const result = [...items];
@@ -15,7 +16,24 @@ function shuffleContinueItems(items) {
   return result;
 }
 
-function buildContinueDeck() {
+function continueItemId(item) {
+  return `${item.surahNumber}:${item.nextNumber}`;
+}
+
+function loadContinueCycle() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CONTINUE_CYCLE_KEY) || "[]");
+    return new Set(Array.isArray(saved) ? saved : []);
+  } catch (error) {
+    return new Set();
+  }
+}
+
+function saveContinueCycle(completedIds) {
+  try { localStorage.setItem(CONTINUE_CYCLE_KEY, JSON.stringify([...completedIds])); } catch (error) { /* хранилище может быть недоступно */ }
+}
+
+function buildContinueDeck(excludedIds = new Set()) {
   // Каждая сура — отдельная «дорожка». Берём по одному переходу из разных
   // сур за круг, поэтому вопросы не идут подряд всей одной сурой.
   const lanes = CONTINUE_SURAHS.map((surah) => ({
@@ -29,7 +47,7 @@ function buildContinueDeck() {
       nextNumber: surah.ayahs[index + 1].number,
       nextArabic: surah.ayahs[index + 1].arabic,
       nextRussian: surah.ayahs[index + 1].russian
-    })))
+    })).filter((item) => !excludedIds.has(continueItemId(item))))
   }));
   const deck = [];
   let previousSurahNumber = null;
@@ -43,13 +61,20 @@ function buildContinueDeck() {
   return deck;
 }
 
-let continueDeck = buildContinueDeck();
+const continueCompletedIds = loadContinueCycle();
+let continueDeck = buildContinueDeck(continueCompletedIds);
+if (!continueDeck.length) {
+  continueCompletedIds.clear();
+  saveContinueCycle(continueCompletedIds);
+  continueDeck = buildContinueDeck();
+}
 
 const continueState = {
   index: 0,
   score: 0,
   errors: 0,
   mistakes: [],
+  completedIds: continueCompletedIds,
   answered: false,
   autoAdvance: true,
   repeating: false,
@@ -155,6 +180,8 @@ function saveContinueSession(phase = "test") {
       score: continueState.score,
       errors: continueState.errors,
       mistakes: continueState.mistakes,
+      completedIds: [...continueState.completedIds],
+      answered: continueState.answered,
       deck: continueState.deck,
       savedAt: Date.now()
     }));
@@ -163,6 +190,13 @@ function saveContinueSession(phase = "test") {
 
 function clearContinueSession() {
   try { localStorage.removeItem(CONTINUE_SESSION_KEY); } catch (error) { /* ничего не делаем */ }
+}
+
+function completeCurrentContinueItem() {
+  const current = continueState.deck[continueState.index];
+  if (!current) return;
+  continueState.completedIds.add(continueItemId(current));
+  saveContinueCycle(continueState.completedIds);
 }
 
 function repeatCurrentContinueAyah() {
@@ -495,6 +529,7 @@ function evaluateContinueRecitation(spoken) {
     continueState.errors += 1;
     continueState.mistakes.push({ ...current, spoken, similarity });
   }
+  completeCurrentContinueItem();
   saveContinueSession("test");
   continueEl("continue-score-label").textContent = `Получилось ${continueState.score}`;
   showContinueAnswer(correct, spoken, similarity);
@@ -537,6 +572,9 @@ function renderContinueQuestion(options = {}) {
     if (!continueState.answered) {
       continueState.answered = true;
       continueState.errors += 1;
+      continueState.mistakes.push({ ...current, spoken: "", similarity: 0 });
+      completeCurrentContinueItem();
+      saveContinueSession("test");
     }
     showContinueAnswer(false, "", 0);
   });
@@ -567,7 +605,12 @@ function startContinueTest() {
   continueState.repeating = false;
   continueState.paused = false;
   continueState.autoAdvance = true;
-  continueState.deck = buildContinueDeck();
+  continueState.deck = buildContinueDeck(continueState.completedIds);
+  if (!continueState.deck.length) {
+    continueState.completedIds.clear();
+    saveContinueCycle(continueState.completedIds);
+    continueState.deck = buildContinueDeck();
+  }
   continueEl("continue-setup").hidden = true;
   continueEl("continue-result").hidden = true;
   continueEl("continue-test").hidden = false;
@@ -631,6 +674,7 @@ function restoreContinueSession() {
     continueState.score = Number(saved.score) || 0;
     continueState.errors = Number(saved.errors) || 0;
     continueState.mistakes = Array.isArray(saved.mistakes) ? saved.mistakes : [];
+    continueState.completedIds = new Set(Array.isArray(saved.completedIds) ? saved.completedIds : [...continueState.completedIds]);
     continueState.repeating = false;
     continueState.paused = false;
     continueState.autoAdvance = true;
@@ -640,6 +684,15 @@ function restoreContinueSession() {
       continueEl("continue-result").hidden = false;
       renderContinueResult();
     } else {
+      if (saved.answered) {
+        if (continueState.index === continueState.deck.length - 1) {
+          renderContinueResult();
+          return true;
+        }
+        continueState.index += 1;
+        continueState.answered = false;
+        saveContinueSession("test");
+      }
       continueEl("continue-result").hidden = true;
       continueEl("continue-test").hidden = false;
       renderContinueQuestion({ autoPlay: false, restored: true });

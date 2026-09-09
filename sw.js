@@ -1,4 +1,4 @@
-const CACHE_NAME = "kalimat-trainer-20260909-11";
+const CACHE_NAME = "kalimat-trainer-20260909-12";
 const SURAH_COUNTS = { 104: 9, 105: 5, 106: 4, 107: 7, 108: 3, 109: 6, 110: 3, 111: 5, 112: 4, 113: 5, 114: 6 };
 const AUDIO_ASSETS = Object.entries(SURAH_COUNTS).flatMap(([surah, count]) =>
   Array.from({ length: count }, (_, index) => `./audio/ayman-suwaid/${surah}${String(index + 1).padStart(3, "0")}.mp3`)
