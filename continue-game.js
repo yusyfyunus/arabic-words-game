@@ -83,13 +83,15 @@ function getContinueAudioContext() {
 }
 
 function primeContinueMicrophone() {
-  if (continueState.microphonePrimed || !navigator.mediaDevices?.getUserMedia) return;
+  if (continueState.microphonePrimed || !navigator.mediaDevices?.getUserMedia) return Promise.resolve(true);
   continueState.microphonePrimed = true;
-  navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+  return navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
     stream.getTracks().forEach((track) => track.stop());
+    return true;
   }).catch(() => {
     // Подробное сообщение покажет SpeechRecognition при запуске проверки.
     continueState.microphonePrimed = false;
+    return false;
   });
 }
 
@@ -268,7 +270,14 @@ function startContinueRecognition(automatic = false) {
   }
   clearContinueTimers();
   continueState.autoAdvance = automatic;
-  if (continueState.recognition) continueState.recognition.abort();
+  if (continueState.recognition) {
+    const previousRecognition = continueState.recognition;
+    previousRecognition.onstart = null;
+    previousRecognition.onerror = null;
+    previousRecognition.onend = null;
+    previousRecognition.onresult = null;
+    try { previousRecognition.abort(); } catch (error) { /* прежний сеанс уже завершён */ }
+  }
   const recognition = new Recognition();
   continueState.recognition = recognition;
   recognition.lang = "ar-SA";
@@ -456,11 +465,11 @@ function advanceContinueQuestion() {
   }
 }
 
-function startContinueTest() {
+async function startContinueTest() {
   // Эти вызовы происходят прямо по нажатию пользователя: Safari разрешает
   // аудио и один раз запрашивает доступ к микрофону до начала упражнения.
   getContinueAudioContext();
-  primeContinueMicrophone();
+  await primeContinueMicrophone();
   continueState.index = 0;
   continueState.score = 0;
   continueState.errors = 0;
