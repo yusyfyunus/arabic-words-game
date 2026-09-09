@@ -1,11 +1,11 @@
-// «Продолжи аят»: приложение произносит один аят, а пользователь
-// продолжает следующий. Голосовой ответ проверяется по словам без огласовок.
+// «Начни или продолжи аят»: приложение называет суру либо произносит один аят,
+// а пользователь читает первый либо следующий аят. Ответ проверяется без огласовок.
 const CONTINUE_SURAHS = JUZ30_SURAHS
   .filter((surah) => surah.number >= 104 && surah.number <= 114)
   .sort((a, b) => b.number - a.number);
 const AYMAN_SOWAID_AUDIO_BASE = "audio/ayman-suwaid/";
-const CONTINUE_SESSION_KEY = "kalimat-continue-session-v2";
-const CONTINUE_CYCLE_KEY = "kalimat-continue-cycle-v1";
+const CONTINUE_SESSION_KEY = "kalimat-continue-session-v3";
+const CONTINUE_CYCLE_KEY = "kalimat-continue-cycle-v2";
 
 function shuffleContinueItems(items) {
   const result = [...items];
@@ -34,21 +34,42 @@ function saveContinueCycle(completedIds) {
 }
 
 function buildContinueDeck(excludedIds = new Set()) {
-  // Каждая сура — отдельная «дорожка». Берём по одному переходу из разных
-  // сур за круг, поэтому вопросы не идут подряд всей одной сурой.
-  const lanes = CONTINUE_SURAHS.map((surah) => ({
-    surahNumber: surah.number,
-    items: shuffleContinueItems(surah.ayahs.slice(0, -1).map((ayah, index) => ({
+  // Каждая сура — отдельная «дорожка». Первый аят тоже является заданием:
+  // приложение называет суру, а пользователь начинает её. Затем идут переходы.
+  // Берём по одному заданию из разных сур, чтобы одна сура не шла подряд.
+  const lanes = CONTINUE_SURAHS.map((surah) => {
+    const firstAyah = surah.ayahs[0];
+    const startItem = firstAyah ? {
       surahNumber: surah.number,
       surahName: surah.name,
+      surahArabicName: surah.arabicName,
+      fromNumber: 0,
+      fromArabic: surah.arabicName,
+      fromRussian: `Начни суру «${surah.name}»`,
+      nextNumber: firstAyah.number,
+      nextArabic: firstAyah.arabic,
+      nextRussian: firstAyah.russian,
+      isSurahStart: true
+    } : null;
+    const transitionItems = surah.ayahs.slice(0, -1).map((ayah, index) => ({
+      surahNumber: surah.number,
+      surahName: surah.name,
+      surahArabicName: surah.arabicName,
       fromNumber: ayah.number,
       fromArabic: ayah.arabic,
       fromRussian: ayah.russian,
       nextNumber: surah.ayahs[index + 1].number,
       nextArabic: surah.ayahs[index + 1].arabic,
-      nextRussian: surah.ayahs[index + 1].russian
-    })).filter((item) => !excludedIds.has(continueItemId(item))))
-  }));
+      nextRussian: surah.ayahs[index + 1].russian,
+      isSurahStart: false
+    }));
+    return {
+      surahNumber: surah.number,
+      items: shuffleContinueItems([startItem, ...transitionItems]
+        .filter(Boolean)
+        .filter((item) => !excludedIds.has(continueItemId(item))))
+    };
+  });
   const deck = [];
   let previousSurahNumber = null;
   while (lanes.some((lane) => lane.items.length)) {
@@ -115,6 +136,24 @@ function speakContinueArabic(text, onEnd) {
   return true;
 }
 
+function speakContinueRussian(text, onEnd) {
+  if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) return false;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "ru-RU";
+  utterance.rate = 0.88;
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    onEnd?.();
+  };
+  utterance.onend = finish;
+  utterance.onerror = finish;
+  window.speechSynthesis.speak(utterance);
+  return true;
+}
+
 function stopContinueAudio() {
   continueState.audioToken += 1;
   if (!continueState.audio) return;
@@ -174,6 +213,14 @@ function playContinuePrompt(ayah, onEnd) {
   });
 }
 
+function playContinueQuestionCue(item, onEnd) {
+  if (item.isSurahStart) {
+    if (!speakContinueRussian(`Начни суру ${item.surahName}`, onEnd)) onEnd?.();
+    return;
+  }
+  playContinuePrompt({ surahNumber: item.surahNumber, number: item.fromNumber }, onEnd);
+}
+
 function prepareContinueMicrophone() {
   if (continueState.microphonePermissionPromise) return continueState.microphonePermissionPromise;
   const setupStatus = continueEl("continue-permission-status");
@@ -207,7 +254,7 @@ function beginContinueListeningAfterPrompt(automatic = true) {
 function saveContinueSession(phase = "test") {
   try {
     localStorage.setItem(CONTINUE_SESSION_KEY, JSON.stringify({
-      version: 2,
+      version: 3,
       phase,
       index: continueState.index,
       score: continueState.score,
@@ -241,8 +288,10 @@ function repeatCurrentContinueAyah() {
   const current = continueState.deck[continueState.index];
   continueState.repeating = true;
   stopContinueRecognition();
-  continueEl("continue-voice-status").textContent = "Повторяю аят. После записи у тебя снова будет 1 минута для ответа.";
-  playContinuePrompt({ surahNumber: current.surahNumber, number: current.fromNumber }, () => {
+  continueEl("continue-voice-status").textContent = current.isSurahStart
+    ? "Повторяю название суры. После подсказки у тебя снова будет 1 минута для ответа."
+    : "Повторяю аят. После записи у тебя снова будет 1 минута для ответа.";
+  playContinueQuestionCue(current, () => {
     continueState.repeating = false;
     beginContinueListeningAfterPrompt(continueState.autoAdvance);
   });
@@ -605,30 +654,27 @@ function renderContinueQuestion(options = {}) {
   const current = continueState.deck[continueState.index];
   continueState.answered = false;
   const progress = (continueState.index / continueState.deck.length) * 100;
-  continueEl("continue-progress-label").textContent = `Переход ${continueState.index + 1} из ${continueState.deck.length}`;
+  continueEl("continue-progress-label").textContent = `Задание ${continueState.index + 1} из ${continueState.deck.length}`;
   continueEl("continue-score-label").textContent = `Получилось ${continueState.score}`;
   continueEl("continue-progress-bar").style.width = `${progress}%`;
   continueEl("continue-question").innerHTML = `
-    <div class="continue-reference"><span>Сура ${current.surahNumber}. ${continueEscape(current.surahName)}</span><strong>После аята ${current.fromNumber}</strong></div>
-    <p class="prompt">Послушай один аят и скажи следующий — варианты ответа не произносятся</p>
+    <div class="continue-reference"><span>Сура ${current.surahNumber}. ${continueEscape(current.surahName)}</span><strong>${current.isSurahStart ? "Начни суру с первого аята" : `После аята ${current.fromNumber}`}</strong></div>
+    <p class="prompt">${current.isSurahStart ? "Послушай название суры и произнеси её первый аят" : "Послушай один аят и скажи следующий — варианты ответа не произносятся"}</p>
     <div class="continue-prompt" dir="rtl" lang="ar">${continueEscape(current.fromArabic)}</div>
     <div class="continue-prompt-translation">${continueEscape(current.fromRussian)}</div>
     <div class="continue-actions">
-      <button class="continue-listen" id="continue-listen">🔊 Послушать аят Аймана Сувайда</button>
+      <button class="continue-listen" id="continue-listen">${current.isSurahStart ? "🔊 Послушать название суры" : "🔊 Послушать аят Аймана Сувайда"}</button>
       <button class="continue-speak" id="continue-speak" hidden>🎙️ Говорить продолжение</button>
       <button class="continue-reveal" id="continue-reveal" hidden>Показать правильный аят</button>
     </div>
-    <p class="continue-voice-status" id="continue-voice-status">${restored ? "Задание восстановлено после обновления. Нажми «Послушать аят» — затем микрофон включится сам." : "После озвучки микрофон включится автоматически на 1 минуту."}</p>
+    <p class="continue-voice-status" id="continue-voice-status">${restored ? "Задание восстановлено после обновления. Нажми кнопку прослушивания — затем микрофон включится сам." : "После озвучки микрофон включится автоматически на 1 минуту."}</p>
     <div class="continue-answer" id="continue-answer" hidden></div>
-    <div id="continue-next-wrap" hidden><button class="continue-next" id="continue-next">Следующий переход →</button></div>`;
+    <div id="continue-next-wrap" hidden><button class="continue-next" id="continue-next">Следующее задание →</button></div>`;
 
   continueEl("continue-listen").addEventListener("click", () => {
     // После чтения сразу включаем микрофон на минуту — отдельная кнопка не нужна.
     prepareContinueMicrophone();
-    playContinuePrompt(
-      { surahNumber: current.surahNumber, number: current.fromNumber },
-      () => beginContinueListeningAfterPrompt(true)
-    );
+    playContinueQuestionCue(current, () => beginContinueListeningAfterPrompt(true));
   });
   continueEl("continue-speak").addEventListener("click", () => startContinueRecognition(false));
   continueEl("continue-reveal").addEventListener("click", () => {
@@ -646,10 +692,7 @@ function renderContinueQuestion(options = {}) {
   });
   preloadContinueAyah({ surahNumber: current.surahNumber, number: current.nextNumber });
   if (autoPlay && continueEl("continue-auto-speak").checked) {
-    playContinuePrompt(
-      { surahNumber: current.surahNumber, number: current.fromNumber },
-      () => beginContinueListeningAfterPrompt(true)
-    );
+    playContinueQuestionCue(current, () => beginContinueListeningAfterPrompt(true));
   }
 }
 
@@ -694,7 +737,7 @@ function renderContinueResult() {
   continueEl("continue-test").hidden = true;
   continueEl("continue-result").hidden = false;
   const mistakesMarkup = continueState.mistakes.length
-    ? `<section class="continue-mistakes"><h3>Аяты для повторения</h3><p>Вот места, где ответ не совпал полностью:</p>${continueState.mistakes.map((mistake, index) => `<article class="continue-mistake"><div class="continue-mistake-meta">${index + 1}. Сура ${mistake.surahNumber}. ${continueEscape(mistake.surahName)} · после аята ${mistake.fromNumber} · повторить аят ${mistake.nextNumber}</div><p class="continue-mistake-arabic" dir="rtl" lang="ar">${continueEscape(mistake.nextArabic)}</p><p>${continueEscape(mistake.nextRussian)}</p><small>Твой ответ: ${continueEscape(mistake.spoken || "не распознан")}</small><button class="continue-mistake-listen" data-surah="${mistake.surahNumber}" data-ayah="${mistake.nextNumber}">🔊 Послушать Аймана Сувайда</button></article>`).join("")}</section>`
+    ? `<section class="continue-mistakes"><h3>Аяты для повторения</h3><p>Вот места, где ответ не совпал полностью:</p>${continueState.mistakes.map((mistake, index) => `<article class="continue-mistake"><div class="continue-mistake-meta">${index + 1}. Сура ${mistake.surahNumber}. ${continueEscape(mistake.surahName)} · ${mistake.isSurahStart ? "первый аят суры" : `после аята ${mistake.fromNumber}`} · повторить аят ${mistake.nextNumber}</div><p class="continue-mistake-arabic" dir="rtl" lang="ar">${continueEscape(mistake.nextArabic)}</p><p>${continueEscape(mistake.nextRussian)}</p><small>Твой ответ: ${continueEscape(mistake.spoken || "не распознан")}</small><button class="continue-mistake-listen" data-surah="${mistake.surahNumber}" data-ayah="${mistake.nextNumber}">🔊 Послушать Аймана Сувайда</button></article>`).join("")}</section>`
     : `<section class="continue-mistakes continue-no-mistakes"><h3>Аяты для повторения</h3><p>Ошибок нет — сегодня повторять отдельные аяты не нужно.</p></section>`;
   continueEl("continue-result").innerHTML = `<div class="continue-result-screen">
     <p class="eyebrow">Занятие завершено</p>
@@ -734,7 +777,7 @@ function restoreContinueSession() {
     const isRecent = saved?.savedAt && Date.now() - saved.savedAt < 14 * 24 * 60 * 60 * 1000;
     const hasDeck = Array.isArray(saved?.deck) && saved.deck.length > 0;
     const validIndex = Number.isInteger(saved?.index) && saved.index >= 0 && saved.index < saved.deck?.length;
-    if (saved?.version !== 2 || !isRecent || !hasDeck || !validIndex) return false;
+    if (saved?.version !== 3 || !isRecent || !hasDeck || !validIndex) return false;
     continueState.deck = saved.deck;
     continueState.index = saved.index;
     continueState.score = Number(saved.score) || 0;
@@ -783,7 +826,7 @@ continueEl("continue-auto-speak").addEventListener("change", () => {
     stopContinueAudio();
   } else if (!continueEl("continue-test").hidden) {
     const current = continueState.deck[continueState.index];
-    playContinuePrompt({ surahNumber: current.surahNumber, number: current.fromNumber });
+    playContinueQuestionCue(current);
   }
 });
 

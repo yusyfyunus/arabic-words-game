@@ -51,7 +51,7 @@
       <button class="project-choice continue-choice" data-open-project="continue">
         <span class="project-number">06</span><span class="project-arabic" lang="ar" dir="rtl">تَابِعْ</span>
         <small>Чтение Аймана Сувайда</small><strong>Продолжи аят</strong>
-        <p>Я читаю один аят, а ты продолжаешь следующий — без вариантов ответов.</p><i>Начать чтение →</i>
+        <p>Я называю суру или читаю аят, а ты начинаешь её либо продолжаешь следующий аят.</p><i>Начать чтение →</i>
       </button>
     </section>
   </main>
@@ -198,41 +198,41 @@
     </header>
     <section class="continue-hero" id="continue-start">
       <p class="eyebrow">Повторение на слух · суры 114–104</p>
-      <h1>Я читаю аят.<br><em>Ты продолжаешь.</em></h1>
-      <p>Приложение читает один аят, ты произносишь следующий, а затем оно проверяет твой ответ по словам.</p>
+      <h1>Я называю суру или читаю аят.<br><em>Ты начинаешь или продолжаешь.</em></h1>
+      <p>Для первого аята приложение называет суру. Для остальных читает предыдущий аят — затем проверяет твой ответ по словам.</p>
     </section>
     <section class="continue-card">
       <div id="continue-setup">
         <div class="continue-setup-heading">
-          <div><p class="eyebrow">Без вариантов ответа</p><h2>Продолжи следующий аят</h2></div>
+          <div><p class="eyebrow">Без вариантов ответа</p><h2>Начни или продолжи аят</h2></div>
           <p>Удобно слушать во время работы: текст читается вслух, а микрофон проверяет твоё продолжение.</p>
         </div>
         <div class="continue-settings">
           <label><input type="checkbox" id="continue-auto-speak" checked> Произносить аят автоматически</label>
           <span>После чтения микрофон сам слушает до 1 минуты — нажимать ничего не нужно.</span>
         </div>
-        <p class="continue-compatibility">Переходы перемешиваются между всеми сурами: подряд одна сура не идёт. Аудио Аймана Сувайда хранится в сайте и работает без интернета. Во время ответа скажи «повтори аят», «подожди» или «продолжай» — запись повторится, отсчёт остановится или возобновится. Для проверки голосом открой сайт через localhost или HTTPS и разреши доступ к микрофону. Само распознавание речи может зависеть от поддержки браузера.</p>
-        <div class="continue-start-row"><strong>46 переходов · суры 114–104</strong><button id="start-continue-test">Начать занятие →</button></div>
+        <p class="continue-compatibility">Все аяты перемешиваются между всеми сурами: подряд одна сура не идёт. Аудио Аймана Сувайда хранится в сайте и работает без интернета. Во время ответа скажи «повтори аят», «подожди» или «продолжай» — запись повторится, отсчёт остановится или возобновится. Для проверки голосом открой сайт через localhost или HTTPS и разреши доступ к микрофону. Само распознавание речи может зависеть от поддержки браузера.</p>
+        <div class="continue-start-row"><strong>57 аятов · все суры 114–104</strong><button id="start-continue-test">Начать занятие →</button></div>
         <p class="continue-permission-status" id="continue-permission-status">При первом запуске Safari попросит разрешить микрофон.</p>
       </div>
       <div id="continue-test" hidden>
         <div class="continue-test-head">
           <button id="exit-continue-test">← К настройкам</button>
-          <div><span id="continue-progress-label">Переход 1</span><strong id="continue-score-label">Получилось 0</strong></div>
+          <div><span id="continue-progress-label">Задание 1</span><strong id="continue-score-label">Получилось 0</strong></div>
           <div class="progress-track"><span id="continue-progress-bar"></span></div>
         </div>
         <div class="continue-question" id="continue-question"></div>
       </div>
       <div id="continue-result" hidden></div>
     </section>
-    <footer class="ayah-source">Материал: переходы между последовательными аятами сур 114–104, перемешанные между сурами. Чтение аятов: Айман Сувайд.</footer>
+    <footer class="ayah-source">Материал: все 57 аятов сур 114–104. Первый аят проверяется по команде «Начни суру», остальные — как продолжение. Чтение аятов: Айман Сувайд.</footer>
   </main>
 
   <script src="juz30-data.js"></script>
   <script src="game.js?v=20260901-1"></script>
   <script src="ayah-game.js?v=20260907-1"></script>
   <script src="daily-game.js?v=20260907-1"></script>
-  <script src="continue-game.js?v=20260909-14"></script>
+  <script src="continue-game.js?v=20260909-15"></script>
   <script>
     if ("serviceWorker" in navigator && location.protocol === "https:") {
       navigator.serviceWorker.register("./sw.js").catch(() => {});
