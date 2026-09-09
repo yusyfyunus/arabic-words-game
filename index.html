@@ -209,7 +209,7 @@
         </div>
         <div class="continue-settings">
           <label><input type="checkbox" id="continue-auto-speak" checked> Произносить аят автоматически</label>
-          <span>После чтения Safari готовит микрофон около 5 секунд, затем слушает до 1 минуты — нажимать ничего не нужно.</span>
+          <span>На iPhone микрофон включается до записи Аймана Сувайда. Пока звучит подсказка, она не считается ответом; после неё сразу читай следующий аят.</span>
         </div>
         <p class="continue-compatibility">Все аяты перемешиваются между всеми сурами: подряд одна сура не идёт. Аудио Аймана Сувайда хранится в сайте и работает без интернета. Во время ответа скажи «повтори аят», «подожди» или «продолжай» — запись повторится, отсчёт остановится или возобновится. Для проверки голосом открой сайт через localhost или HTTPS и разреши доступ к микрофону. Само распознавание речи может зависеть от поддержки браузера.</p>
         <div class="continue-start-row"><strong>57 аятов · все суры 114–104</strong><button id="start-continue-test">Начать занятие →</button></div>
@@ -232,14 +232,14 @@
   <script src="game.js?v=20260901-1"></script>
   <script src="ayah-game.js?v=20260907-1"></script>
   <script src="daily-game.js?v=20260907-1"></script>
-  <script src="continue-game.js?v=20260909-18"></script>
+  <script src="continue-game.js?v=20260909-19"></script>
   <script>
     if ("serviceWorker" in navigator && location.protocol === "https:") {
       let reloadingForUpdate = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20260909-18")) return;
+        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20260909-19")) return;
         reloadingForUpdate = true;
-        sessionStorage.setItem("kalimat-sw-20260909-18", "1");
+        sessionStorage.setItem("kalimat-sw-20260909-19", "1");
         location.reload();
       });
       navigator.serviceWorker.register("./sw.js")

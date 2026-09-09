@@ -100,6 +100,7 @@ const continueState = {
   autoAdvance: true,
   repeating: false,
   paused: false,
+  cuePlaying: false,
   recognitionActive: false,
   deck: continueDeck,
   recognition: null,
@@ -315,7 +316,7 @@ function prepareContinueMicrophone() {
     .then((stream) => {
       stream.getTracks().forEach((track) => track.stop());
       continueState.microphonePermission = "granted";
-      if (setupStatus) setupStatus.textContent = "Микрофон разрешён. После чтения аята он включится автоматически.";
+      if (setupStatus) setupStatus.textContent = "Микрофон разрешён. Он включится перед чтением аята и останется готов к твоему ответу.";
       return true;
     })
     .catch(() => {
@@ -402,9 +403,8 @@ function repeatCurrentContinueAyah() {
   continueEl("continue-voice-status").textContent = current.isSurahStart
     ? "Повторяю название суры. После подсказки у тебя снова будет 1 минута для ответа."
     : "Повторяю аят. После записи у тебя снова будет 1 минута для ответа.";
-  playContinueQuestionCue(current, () => {
+  startContinueRecognitionBeforeCue(current, continueState.autoAdvance, () => {
     continueState.repeating = false;
-    beginContinueListeningAfterPrompt(continueState.autoAdvance);
   });
 }
 
@@ -600,7 +600,7 @@ function handleContinueTranscript(finalText, generation, automatic) {
   );
 }
 
-function launchContinueRecognition(generation, automatic) {
+function launchContinueRecognition(generation, automatic, onStarted) {
   const Recognition = getRecognitionConstructor();
   const button = continueEl("continue-speak");
   const status = continueEl("continue-voice-status");
@@ -613,7 +613,9 @@ function launchContinueRecognition(generation, automatic) {
   recognition.interimResults = true;
   // Короткий новый сеанс при каждом перезапуске устойчивее на iPhone,
   // чем повторный start() у уже завершившегося объекта.
-  recognition.continuous = false;
+  // На iPhone держим один сеанс открытым во время Web Audio-подсказки.
+  // Так Safari не должен заново запускать распознавание после воспроизведения.
+  recognition.continuous = isContinueIOS();
   recognition.maxAlternatives = 3;
   let lastError = "";
   let receivedResult = false;
@@ -627,13 +629,19 @@ function launchContinueRecognition(generation, automatic) {
     button.hidden = automatic;
     status.textContent = continueState.paused
       ? "Пауза. Скажи «продолжай», когда будешь готова."
-      : "Слушаю. Произнеси следующий аят целиком — у тебя есть 1 минута.";
+      : continueState.cuePlaying
+        ? "Микрофон включён. Сначала слушай подсказку Аймана Сувайда."
+        : "Слушаю. Произнеси следующий аят целиком — у тебя есть 1 минута.";
+    onStarted?.();
+    onStarted = null;
     clearTimeout(continueState.recognitionWatchdogTimer);
-    continueState.recognitionWatchdogTimer = setTimeout(() => {
-      if (!receivedResult && !continueState.answered) {
-        recoverHungContinueRecognition(generation, automatic, recognition);
-      }
-    }, isContinueIOS() ? 12000 : 18000);
+    if (!continueState.cuePlaying) {
+      continueState.recognitionWatchdogTimer = setTimeout(() => {
+        if (!receivedResult && !continueState.answered) {
+          recoverHungContinueRecognition(generation, automatic, recognition);
+        }
+      }, isContinueIOS() ? 12000 : 18000);
+    }
   };
   recognition.onerror = (event) => {
     if (generation !== continueState.recognitionGeneration) return;
@@ -681,6 +689,9 @@ function launchContinueRecognition(generation, automatic) {
   };
   recognition.onresult = (event) => {
     if (generation !== continueState.recognitionGeneration) return;
+    // Safari уже слушает, пока играет вопрос. Его собственную запись не считаем
+    // ответом пользователя; принимать речь начинаем только после окончания cue.
+    if (continueState.cuePlaying) return;
     const heardParts = [];
     clearTimeout(continueState.recognitionWatchdogTimer);
     continueState.recognitionWatchdogTimer = null;
@@ -715,6 +726,53 @@ function launchContinueRecognition(generation, automatic) {
     status.textContent = "Микрофон ещё запускается — пробую снова.";
     scheduleContinueRecognition(generation, automatic, 900);
   }
+}
+
+function startContinueRecognitionBeforeCue(current, automatic = true, afterCue) {
+  const Recognition = getRecognitionConstructor();
+  const status = continueEl("continue-voice-status");
+  if (!Recognition) {
+    continueState.autoAdvance = false;
+    if (status) status.textContent = "Safari не открыл службу распознавания речи. Проверь, что Siri включена в настройках iPhone.";
+    continueEl("continue-speak").hidden = false;
+    continueEl("continue-reveal").hidden = false;
+    return;
+  }
+  clearContinueTimers();
+  stopContinueRecognition();
+  continueState.autoAdvance = automatic;
+  continueState.spokenParts = [];
+  continueState.cuePlaying = true;
+  continueState.listenUntil = Date.now() + 90000;
+  const generation = continueState.recognitionGeneration;
+  let cueStarted = false;
+  launchContinueRecognition(generation, automatic, () => {
+    if (cueStarted || generation !== continueState.recognitionGeneration) return;
+    cueStarted = true;
+    if (status) status.textContent = current.isSurahStart
+      ? "Микрофон включён. Слушай название суры, затем начинай читать."
+      : "Микрофон включён. Слушай аят Аймана Сувайда, затем продолжай.";
+    playContinueQuestionCue(current, () => {
+      if (generation !== continueState.recognitionGeneration || continueState.answered) return;
+      continueState.cuePlaying = false;
+      continueState.spokenParts = [];
+      continueState.listenUntil = Date.now() + 60000;
+      clearTimeout(continueState.minuteTimer);
+      continueState.minuteTimer = setTimeout(
+        () => evaluateContinueRecitation(continueState.spokenParts.join(" ")),
+        60000
+      );
+      if (status) status.textContent = "Слушаю тебя. Произнеси следующий аят целиком — у тебя есть 1 минута.";
+      const activeRecognition = continueState.recognition;
+      clearTimeout(continueState.recognitionWatchdogTimer);
+      continueState.recognitionWatchdogTimer = setTimeout(() => {
+        if (!continueState.spokenParts.length && !continueState.answered && activeRecognition) {
+          recoverHungContinueRecognition(generation, automatic, activeRecognition);
+        }
+      }, isContinueIOS() ? 15000 : 18000);
+      afterCue?.();
+    });
+  });
 }
 
 function startContinueRecognition(automatic = false) {
@@ -809,6 +867,7 @@ function renderContinueQuestion(options = {}) {
   const { autoPlay = true, restored = false } = options;
   const current = continueState.deck[continueState.index];
   continueState.answered = false;
+  continueState.cuePlaying = false;
   const progress = (continueState.index / continueState.deck.length) * 100;
   continueEl("continue-progress-label").textContent = `Задание ${continueState.index + 1} из ${continueState.deck.length}`;
   continueEl("continue-score-label").textContent = `Получилось ${continueState.score}`;
@@ -828,11 +887,12 @@ function renderContinueQuestion(options = {}) {
     <div id="continue-next-wrap" hidden><button class="continue-next" id="continue-next">Следующее задание →</button></div>`;
 
   continueEl("continue-listen").addEventListener("click", () => {
-    // Нажатие разблокирует Web Audio на iPhone. После чтения микрофон
-    // включается сам — отдельная кнопка не нужна.
+    // Нажатие разблокирует Web Audio на iPhone. Распознавание запускается
+    // до подсказки, чтобы Safari не зависал после воспроизведения.
     unlockContinueAudio();
-    prepareContinueMicrophone();
-    playContinueQuestionCue(current, () => beginContinueListeningAfterPrompt(true));
+    prepareContinueMicrophone().then((granted) => {
+      if (granted) startContinueRecognitionBeforeCue(current, true);
+    });
   });
   continueEl("continue-speak").addEventListener("click", () => startContinueRecognition(false));
   continueEl("continue-reveal").addEventListener("click", () => {
@@ -850,7 +910,7 @@ function renderContinueQuestion(options = {}) {
   });
   preloadContinueAyah({ surahNumber: current.surahNumber, number: current.nextNumber });
   if (autoPlay && continueEl("continue-auto-speak").checked) {
-    playContinueQuestionCue(current, () => beginContinueListeningAfterPrompt(true));
+    startContinueRecognitionBeforeCue(current, true);
   }
 }
 
@@ -864,13 +924,14 @@ function advanceContinueQuestion() {
   }
 }
 
-function startContinueTest() {
+function startContinueTest(autoPlay = true) {
   continueState.index = 0;
   continueState.score = 0;
   continueState.errors = 0;
   continueState.mistakes = [];
   continueState.repeating = false;
   continueState.paused = false;
+  continueState.cuePlaying = false;
   continueState.autoAdvance = true;
   continueState.deck = buildContinueDeck(continueState.completedIds);
   if (!continueState.deck.length) {
@@ -882,7 +943,7 @@ function startContinueTest() {
   continueEl("continue-result").hidden = true;
   continueEl("continue-test").hidden = false;
   saveContinueSession("test");
-  renderContinueQuestion();
+  renderContinueQuestion({ autoPlay });
   continueEl("continue-test").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -978,8 +1039,13 @@ continueEl("start-continue-test").addEventListener("click", () => {
   // iPhone Safari надёжно показывает системный запрос только внутри нажатия.
   // Здесь же разблокируем Web Audio; после этого всё идёт без дополнительных кнопок.
   unlockContinueAudio();
-  prepareContinueMicrophone();
-  startContinueTest();
+  startContinueTest(false);
+  const current = continueState.deck[continueState.index];
+  prepareContinueMicrophone().then((granted) => {
+    if (granted && continueEl("continue-auto-speak").checked) {
+      startContinueRecognitionBeforeCue(current, true);
+    }
+  });
 });
 continueEl("exit-continue-test").addEventListener("click", returnToContinueSetup);
 continueEl("continue-auto-speak").addEventListener("change", () => {
