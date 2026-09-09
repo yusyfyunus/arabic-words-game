@@ -110,6 +110,9 @@ const continueState = {
   spokenParts: [],
   audio: null,
   audioPlayer: null,
+  audioContext: null,
+  audioSource: null,
+  audioBuffers: new Map(),
   audioToken: 0,
   microphonePermissionPromise: null,
   microphonePermission: "unknown",
@@ -157,28 +160,71 @@ function speakContinueRussian(text, onEnd) {
 
 function stopContinueAudio() {
   continueState.audioToken += 1;
-  if (!continueState.audio) return;
-  continueState.audio.onended = null;
-  continueState.audio.onerror = null;
-  try { continueState.audio.pause(); } catch (error) { /* запись уже закончилась */ }
-  try { continueState.audio.currentTime = 0; } catch (error) { /* Safari может запретить перемотку незагруженного файла */ }
-  continueState.audio = null;
+  if (continueState.audioSource) {
+    continueState.audioSource.onended = null;
+    try { continueState.audioSource.stop(0); } catch (error) { /* источник уже остановлен */ }
+    try { continueState.audioSource.disconnect(); } catch (error) { /* источник уже отключён */ }
+    continueState.audioSource = null;
+  }
+  if (continueState.audio) {
+    continueState.audio.onended = null;
+    continueState.audio.onerror = null;
+    try { continueState.audio.pause(); } catch (error) { /* запись уже закончилась */ }
+    try { continueState.audio.currentTime = 0; } catch (error) { /* Safari может запретить перемотку незагруженного файла */ }
+    continueState.audio = null;
+  }
 }
 
 function continueAyahAudioUrl(surahNumber, ayahNumber) {
   return `${AYMAN_SOWAID_AUDIO_BASE}${String(surahNumber).padStart(3, "0")}${String(ayahNumber).padStart(3, "0")}.mp3`;
 }
 
-function preloadContinueAyah(ayah) {
-  const audio = new Audio();
-  audio.preload = "auto";
-  audio.src = continueAyahAudioUrl(ayah.surahNumber, ayah.number);
-  audio.load();
+function ensureContinueAudioContext() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  if (!continueState.audioContext) continueState.audioContext = new AudioContextClass();
+  if (continueState.audioContext.state === "suspended") {
+    continueState.audioContext.resume().catch(() => {});
+  }
+  return continueState.audioContext;
 }
 
-function playContinueAyah(ayah, onEnd, onError) {
-  stopContinueAudio();
-  const token = continueState.audioToken;
+function unlockContinueAudio() {
+  const context = ensureContinueAudioContext();
+  if (!context) return;
+  try {
+    const source = context.createBufferSource();
+    source.buffer = context.createBuffer(1, 1, context.sampleRate || 44100);
+    source.connect(context.destination);
+    source.start(0);
+  } catch (error) { /* Safari уже разрешил звук или не требует разблокировки */ }
+}
+
+function loadContinueAudioBuffer(url) {
+  const context = ensureContinueAudioContext();
+  if (!context) return Promise.reject(new Error("Web Audio API unavailable"));
+  if (!continueState.audioBuffers.has(url)) {
+    const bufferPromise = fetch(url)
+      .then((response) => {
+        if (!response.ok) throw new Error(`Audio ${response.status}`);
+        return response.arrayBuffer();
+      })
+      .then((bytes) => context.decodeAudioData(bytes))
+      .catch((error) => {
+        continueState.audioBuffers.delete(url);
+        throw error;
+      });
+    continueState.audioBuffers.set(url, bufferPromise);
+  }
+  return continueState.audioBuffers.get(url);
+}
+
+function preloadContinueAyah(ayah) {
+  const url = continueAyahAudioUrl(ayah.surahNumber, ayah.number);
+  if (ensureContinueAudioContext()) loadContinueAudioBuffer(url).catch(() => {});
+}
+
+function playContinueAyahElement(ayah, token, onEnd, onError) {
   const audio = continueState.audioPlayer || new Audio();
   continueState.audioPlayer = audio;
   audio.src = continueAyahAudioUrl(ayah.surahNumber, ayah.number);
@@ -200,6 +246,40 @@ function playContinueAyah(ayah, onEnd, onError) {
   audio.onerror = fail;
   const playPromise = audio.play();
   if (playPromise?.catch) playPromise.catch(fail);
+  return true;
+}
+
+function playContinueAyah(ayah, onEnd, onError) {
+  stopContinueAudio();
+  const token = continueState.audioToken;
+  const context = ensureContinueAudioContext();
+  if (!context) return playContinueAyahElement(ayah, token, onEnd, onError);
+  const url = continueAyahAudioUrl(ayah.surahNumber, ayah.number);
+  let failed = false;
+  const fail = () => {
+    if (failed || token !== continueState.audioToken) return;
+    failed = true;
+    // Резервный обычный плеер нужен только для старых браузеров, где Web Audio
+    // не смог декодировать mp3. На iPhone основной путь не создаёт <audio>.
+    playContinueAyahElement(ayah, token, onEnd, onError);
+  };
+  loadContinueAudioBuffer(url)
+    .then((buffer) => context.resume().then(() => buffer))
+    .then((buffer) => {
+      if (token !== continueState.audioToken) return;
+      const source = context.createBufferSource();
+      source.buffer = buffer;
+      source.connect(context.destination);
+      continueState.audioSource = source;
+      source.onended = () => {
+        if (token !== continueState.audioToken) return;
+        if (continueState.audioSource === source) continueState.audioSource = null;
+        try { source.disconnect(); } catch (error) { /* уже отключён */ }
+        onEnd?.();
+      };
+      source.start(0);
+    })
+    .catch(fail);
   return true;
 }
 
@@ -675,7 +755,10 @@ function showContinueAnswer(correct, spoken, similarity) {
     <div>${continueEscape(current.nextRussian)}</div>
     <button class="continue-answer-listen" id="continue-answer-listen" data-surah="${current.surahNumber}" data-ayah="${current.nextNumber}">🔊 Послушать правильный аят</button>
     <p class="continue-match">Совпадение по словам: ${Math.round(similarity * 100)}%</p>`;
-  continueEl("continue-answer-listen").addEventListener("click", () => playContinuePrompt({ surahNumber: current.surahNumber, number: current.nextNumber }));
+  continueEl("continue-answer-listen").addEventListener("click", () => {
+    unlockContinueAudio();
+    playContinuePrompt({ surahNumber: current.surahNumber, number: current.nextNumber });
+  });
   // Голосовая обратная связь: похвала за верный ответ или правильный аят для повторения.
   continueEl("continue-next-wrap").hidden = continueState.autoAdvance;
   if (continueState.autoAdvance) {
@@ -745,7 +828,9 @@ function renderContinueQuestion(options = {}) {
     <div id="continue-next-wrap" hidden><button class="continue-next" id="continue-next">Следующее задание →</button></div>`;
 
   continueEl("continue-listen").addEventListener("click", () => {
-    // После чтения сразу включаем микрофон на минуту — отдельная кнопка не нужна.
+    // Нажатие разблокирует Web Audio на iPhone. После чтения микрофон
+    // включается сам — отдельная кнопка не нужна.
+    unlockContinueAudio();
     prepareContinueMicrophone();
     playContinueQuestionCue(current, () => beginContinueListeningAfterPrompt(true));
   });
@@ -822,7 +907,10 @@ function renderContinueResult() {
     <div class="result-actions"><button id="repeat-continue-test">↻ Повторить</button><button id="choose-continue-settings">К настройкам</button></div>
   </div>`;
   continueEl("continue-result").querySelectorAll(".continue-mistake-listen").forEach((button) => {
-    button.addEventListener("click", () => playContinuePrompt({ surahNumber: Number(button.dataset.surah), number: Number(button.dataset.ayah) }));
+    button.addEventListener("click", () => {
+      unlockContinueAudio();
+      playContinuePrompt({ surahNumber: Number(button.dataset.surah), number: Number(button.dataset.ayah) });
+    });
   });
   continueEl("repeat-continue-test").addEventListener("click", startContinueTest);
   continueEl("choose-continue-settings").addEventListener("click", returnToContinueSetup);
@@ -888,7 +976,8 @@ function restoreContinueSession() {
 
 continueEl("start-continue-test").addEventListener("click", () => {
   // iPhone Safari надёжно показывает системный запрос только внутри нажатия.
-  // Запрашиваем доступ здесь, а после этого все задания идут без дополнительных кнопок.
+  // Здесь же разблокируем Web Audio; после этого всё идёт без дополнительных кнопок.
+  unlockContinueAudio();
   prepareContinueMicrophone();
   startContinueTest();
 });
