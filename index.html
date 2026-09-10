@@ -230,7 +230,7 @@
   </main>
 
   <script src="juz30-data.js"></script>
-  <script src="game.js?v=20260909-22"></script>
+  <script src="game.js?v=20260910-24"></script>
   <script src="ayah-game.js?v=20260909-21"></script>
   <script src="daily-game.js?v=20260909-21"></script>
   <script src="continue-game.js?v=20260909-21"></script>
@@ -238,9 +238,9 @@
     if ("serviceWorker" in navigator && location.protocol === "https:") {
       let reloadingForUpdate = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20260909-22")) return;
+        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20260910-24")) return;
         reloadingForUpdate = true;
-        sessionStorage.setItem("kalimat-sw-20260909-22", "1");
+        sessionStorage.setItem("kalimat-sw-20260910-24", "1");
         location.reload();
       });
       navigator.serviceWorker.register("./sw.js")
