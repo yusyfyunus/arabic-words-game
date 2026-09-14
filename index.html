@@ -24,7 +24,7 @@
     </header>
     <section class="portal-hero">
       <p class="eyebrow">Выбери, что будем учить</p>
-      <h1>Пять путей.<br><em>Одна цель — понимать.</em></h1>
+      <h1>Шесть путей.<br><em>Одна цель — понимать.</em></h1>
       <p>Слова из сур, перевод аятов, ежедневное повторение и чтение на слух.</p>
     </section>
     <section class="project-choice-grid">
@@ -52,6 +52,11 @@
         <span class="project-number">06</span><span class="project-arabic" lang="ar" dir="rtl">تَابِعْ</span>
         <small>Чтение Аймана Сувайда</small><strong>Продолжи аят</strong>
         <p>Я называю суру или читаю аят, а ты начинаешь её либо продолжаешь следующий аят.</p><i>Начать чтение →</i>
+      </button>
+      <button class="project-choice listen-choice" data-open-project="listen">
+        <span class="project-number">07</span><span class="project-arabic" lang="ar" dir="rtl">اِسْتَمِعْ</span>
+        <small>Слушаем и переводим</small><strong>Скажи перевод</strong>
+        <p>Айман Сувайд читает аят по-арабски, а ты произносишь его перевод по-русски.</p><i>Начать проверку →</i>
       </button>
     </section>
   </main>
@@ -229,18 +234,69 @@
     <footer class="ayah-source">Материал: все 79 аятов сур 114–101. Первый аят проверяется по команде «Начни суру», остальные — как продолжение. Чтение аятов: Айман Сувайд.</footer>
   </main>
 
+  <main class="listen-shell" id="listen-app" hidden>
+    <header class="topbar listen-topbar">
+      <button class="back-project" data-open-project="home">← Разделы</button>
+      <a class="brand" href="#listen-start"><span class="brand-mark listen-mark">س</span><span>Скажи перевод</span></a>
+      <span class="juz-pill">79 аятов</span>
+    </header>
+    <section class="listen-hero" id="listen-start">
+      <p class="eyebrow">Слушаем и переводим · суры 114–101</p>
+      <h1>Слушай аят.<br><em>Скажи его перевод.</em></h1>
+      <p>Айман Сувайд читает по-арабски, затем микрофон слушает твой перевод и проверяет его по смысловым словам.</p>
+    </section>
+    <section class="listen-card">
+      <div id="listen-setup">
+        <div class="listen-setup-heading">
+          <div><p class="eyebrow">Все пройденные аяты</p><h2>Выбери порядок</h2></div>
+          <p>Можно отвечать по порядку или перемешать все аяты между сурами. На каждый ответ даётся одна минута.</p>
+        </div>
+        <div class="listen-settings">
+          <label><input type="radio" name="listen-order" value="ordered" checked> По порядку: от «Ан-Нас» до «Аль-Кариа»</label>
+          <label><input type="radio" name="listen-order" value="random"> Вразброс: аяты из разных сур</label>
+          <label><input type="checkbox" id="listen-auto-next" checked> Автоматически переходить к следующему аяту</label>
+        </div>
+        <div class="listen-start-row"><strong>79 аятов · 14 сур</strong><button id="start-listen-session">Начать проверку →</button></div>
+      </div>
+      <div id="listen-player" hidden>
+        <div class="listen-player-head">
+          <button id="exit-listen-session">← К настройкам</button>
+          <div><span id="listen-progress-label">Аят 1 из 79</span><strong id="listen-surah-label">Ан-Нас · 1</strong></div>
+          <div class="progress-track"><span id="listen-progress-bar"></span></div>
+        </div>
+        <div class="listen-content">
+          <p class="listen-stage" id="listen-stage">Читает Айман Сувайд</p>
+          <div class="listen-arabic" id="listen-arabic" dir="rtl" lang="ar"></div>
+          <div class="listen-translation" id="listen-translation">После аята произнеси перевод по-русски.</div>
+          <div class="listen-heard" id="listen-heard"></div>
+          <div class="listen-controls">
+            <button id="listen-previous">← Назад</button>
+            <button id="listen-repeat">↻ Повторить</button>
+            <button class="listen-pause" id="listen-pause">⏸ Пауза</button>
+            <button id="listen-reveal">Не помню — ответ</button>
+            <button id="listen-next">Вперёд →</button>
+          </div>
+          <p class="listen-status" id="listen-status" aria-live="polite"></p>
+        </div>
+      </div>
+      <div id="listen-result" hidden></div>
+    </section>
+    <footer class="ayah-source">Все 79 аятов сур 114–101. Арабское чтение: Айман Сувайд. Ответ ученицы проверяется по переводу смыслов «Калям Шариф», ДУМ Республики Татарстан.</footer>
+  </main>
+
   <script src="juz30-data.js"></script>
   <script src="game.js?v=20260910-24"></script>
-  <script src="ayah-game.js?v=20260914-26"></script>
-  <script src="daily-game.js?v=20260914-26"></script>
-  <script src="continue-game.js?v=20260914-26"></script>
+  <script src="ayah-game.js?v=20260914-27"></script>
+  <script src="daily-game.js?v=20260914-27"></script>
+  <script src="continue-game.js?v=20260914-27"></script>
+  <script src="listen-game.js?v=20260914-27"></script>
   <script>
     if ("serviceWorker" in navigator && location.protocol === "https:") {
       let reloadingForUpdate = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20260914-26")) return;
+        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20260914-27")) return;
         reloadingForUpdate = true;
-        sessionStorage.setItem("kalimat-sw-20260914-26", "1");
+        sessionStorage.setItem("kalimat-sw-20260914-27", "1");
         location.reload();
       });
       navigator.serviceWorker.register("./sw.js")

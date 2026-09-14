@@ -4,7 +4,8 @@ const portalViews = {
   ayahs: document.getElementById("ayah-app"),
   tafsir: document.getElementById("tafsir-app"),
   daily: document.getElementById("daily-app"),
-  continue: document.getElementById("continue-app")
+  continue: document.getElementById("continue-app"),
+  listen: document.getElementById("listen-app")
 };
 const ACTIVE_PROJECT_KEY = "kalimat-active-project-v1";
 
@@ -24,6 +25,9 @@ function openProject(name, options = {}) {
   }
   if (name === "daily" && typeof renderDailySetup === "function") {
     renderDailySetup();
+  }
+  if (name === "listen" && typeof showListenSetup === "function") {
+    showListenSetup();
   }
   if (remember) {
     try { localStorage.setItem(ACTIVE_PROJECT_KEY, viewName); } catch (error) { /* хранилище может быть недоступно */ }

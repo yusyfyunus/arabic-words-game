@@ -701,6 +701,10 @@ button { color: inherit; }
 .continue-choice::after { background: rgba(15,91,70,.11); }
 .continue-choice .project-arabic { color: #287862; }
 .continue-choice i { color: var(--forest); }
+.listen-choice { background: #e8e0ef; }
+.listen-choice::after { background: rgba(92,64,120,.10); }
+.listen-choice .project-arabic { color: #71528a; }
+.listen-choice i { color: #604478; }
 .back-project { border: 0; background: transparent; color: var(--forest); cursor: pointer; font-size: 12px; font-weight: 850; }
 .page-shell .topbar { display: grid; grid-template-columns: 1fr auto 1fr; gap: 15px; }
 .page-shell .topbar .back-project { justify-self: start; }
@@ -943,6 +947,68 @@ button { color: inherit; }
   .daily-result-screen { padding: 36px 16px 45px; }
   .daily-result-screen > h2 { font-size: 25px; }
   .daily-error-item { grid-template-columns: 29px 1fr; padding: 12px; }
+}
+
+/* Аят и перевод */
+.listen-shell { min-height: 100vh; overflow: hidden; padding: 0 24px 80px; background: radial-gradient(circle at 82% 17%, rgba(113,82,138,.12), transparent 28%), var(--paper); }
+.listen-topbar { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; }
+.listen-topbar .back-project { justify-self: start; }
+.listen-mark { background: #71528a; }
+.listen-hero { width: min(850px, 100%); margin: 58px auto 34px; text-align: center; }
+.listen-hero h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(46px, 7vw, 76px); font-weight: 500; line-height: .98; letter-spacing: -.045em; }
+.listen-hero h1 em { color: #71528a; font-weight: 500; }
+.listen-hero > p:last-child { max-width: 650px; margin: 24px auto 0; color: rgba(23,51,43,.66); line-height: 1.6; }
+.listen-card { width: min(1050px, 100%); margin: 0 auto; overflow: hidden; border: 1px solid rgba(23,51,43,.1); border-radius: 24px; background: var(--cream); box-shadow: 0 24px 70px rgba(45,56,42,.12); }
+.listen-setup-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 34px 36px 24px; }
+.listen-setup-heading .eyebrow { margin-bottom: 7px; }
+.listen-setup-heading h2 { margin: 0; font-family: Georgia, serif; font-size: 34px; font-weight: 500; }
+.listen-setup-heading > p { max-width: 360px; margin: 0; color: rgba(23,51,43,.58); font-size: 13px; line-height: 1.5; text-align: right; }
+.listen-settings { display: grid; gap: 12px; margin: 0 36px 25px; padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: #fbf8f1; }
+.listen-settings label { display: flex; align-items: flex-start; gap: 10px; color: var(--forest-dark); font-size: 13px; font-weight: 750; line-height: 1.45; }
+.listen-settings input { margin-top: 2px; accent-color: #71528a; }
+.listen-start-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 20px 36px; border-top: 1px solid var(--line); }
+.listen-start-row strong { color: #71528a; font-family: Georgia, serif; font-size: 18px; }
+.listen-start-row button, .listen-result-screen button { padding: 14px 22px; border: 0; border-radius: 11px; background: #71528a; color: white; cursor: pointer; font-weight: 850; }
+.listen-player-head { padding: 24px 36px 0; }
+.listen-player-head > button { margin-bottom: 20px; padding: 0; border: 0; background: transparent; color: #71528a; cursor: pointer; font-size: 12px; font-weight: 850; }
+.listen-player-head > div { display: flex; justify-content: space-between; margin-bottom: 9px; color: rgba(23,51,43,.58); font-size: 11px; }
+.listen-player-head strong { color: #71528a; }
+.listen-player-head .progress-track span { background: #71528a; }
+.listen-content { min-height: 500px; padding: 42px 55px 52px; text-align: center; }
+.listen-stage { margin: 0 0 18px; color: #71528a; font-size: 11px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+.listen-arabic { width: min(820px, 100%); margin: 0 auto; padding: 30px; border: 1px solid var(--line); border-radius: 17px; background: #fbf8f1; color: var(--forest-dark); font-family: "Uthmanic Hafs", "Geeza Pro", "Noto Naskh Arabic", serif; font-size: clamp(34px, 5vw, 52px); line-height: 2; }
+.listen-translation { width: min(780px, 100%); margin: 22px auto 0; color: rgba(23,51,43,.72); font-family: Georgia, serif; font-size: 18px; line-height: 1.6; }
+.listen-heard { min-height: 22px; margin: 10px auto 0; color: #71528a; font-size: 12px; font-weight: 750; }
+.listen-controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
+.listen-controls button { min-height: 48px; padding: 12px 17px; border: 1px solid #71528a; border-radius: 10px; background: white; color: #604478; cursor: pointer; font-weight: 800; }
+.listen-controls .listen-pause { background: #71528a; color: white; }
+.listen-status { min-height: 20px; margin: 16px auto 0; color: rgba(23,51,43,.56); font-size: 12px; }
+.listen-result-screen { padding: 55px 35px 62px; text-align: center; }
+.listen-result-screen h2 { margin: 0; font-family: Georgia, serif; font-size: 34px; font-weight: 500; }
+.listen-result-screen > p:not(.eyebrow) { margin: 16px auto 25px; color: rgba(23,51,43,.62); line-height: 1.55; }
+
+@media (max-width: 760px) {
+  .listen-shell { padding: 0 14px 50px; }
+  .listen-topbar { grid-template-columns: auto 1fr auto; }
+  .listen-topbar .brand { justify-self: center; font-size: 0; }
+  .listen-topbar .brand-mark { font-size: 21px; }
+  .listen-hero { margin: 42px auto 27px; }
+  .listen-hero h1 { font-size: 44px; }
+  .listen-card { border-radius: 18px; }
+  .listen-setup-heading { align-items: flex-start; padding: 25px 14px 18px; }
+  .listen-setup-heading h2 { font-size: 25px; }
+  .listen-setup-heading > p { display: none; }
+  .listen-settings { margin: 0 14px 18px; padding: 15px; }
+  .listen-start-row { align-items: flex-start; flex-direction: column; padding: 15px 14px; }
+  .listen-start-row button { width: 100%; }
+  .listen-player-head { padding: 20px 18px 0; }
+  .listen-content { min-height: 500px; padding: 30px 16px 40px; }
+  .listen-arabic { padding: 20px 14px; font-size: 31px; line-height: 1.8; }
+  .listen-translation { font-size: 16px; }
+  .listen-controls { display: grid; grid-template-columns: 1fr 1fr; }
+  .listen-controls button { width: 100%; }
+  .listen-result-screen { padding: 42px 16px 50px; }
+  .listen-result-screen h2 { font-size: 27px; }
 }
 
 @media (max-width: 760px) {
