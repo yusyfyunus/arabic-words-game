@@ -1,9 +1,21 @@
 const DAILY_SURAHS = JUZ30_SURAHS
-  .filter((surah) => surah.number >= 102 && surah.number <= 114)
+  .filter((surah) => surah.number >= 101 && surah.number <= 114)
   .sort((a, b) => b.number - a.number);
 
 const DAILY_DAYS = 7;
-const DAILY_PROGRESS_KEY = "kalimat-daily-progress-v1";
+
+function dailyWeekId(date = new Date()) {
+  const monday = new Date(date);
+  const daysSinceMonday = (monday.getDay() + 6) % 7;
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() - daysSinceMonday);
+  const year = monday.getFullYear();
+  const month = String(monday.getMonth() + 1).padStart(2, "0");
+  const day = String(monday.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+const DAILY_PROGRESS_KEY = `kalimat-daily-progress-v2-${dailyWeekId()}`;
 const DAILY_AYAH_ENTRIES = DAILY_SURAHS.flatMap((surah) => surah.ayahs.map((ayah) => ({
   ...ayah,
   surahNumber: surah.number,
@@ -79,15 +91,6 @@ function buildDailyDays() {
 }
 
 const dailyDays = buildDailyDays();
-
-// Эти два дня пользователь уже прошла без ошибок до появления сохранения прогресса.
-if (Object.keys(dailyProgress).length === 0) {
-  dailyProgress = {
-    0: { score: dailyDays[0].length, total: dailyDays[0].length, errors: 0, completedAt: new Date().toISOString() },
-    1: { score: dailyDays[1].length, total: dailyDays[1].length, errors: 0, completedAt: new Date().toISOString() }
-  };
-  localStorage.setItem(DAILY_PROGRESS_KEY, JSON.stringify(dailyProgress));
-}
 
 function dailyKindCount(day, kind) {
   return day.filter((unit) => unit.kind === kind).length;
