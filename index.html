@@ -13,7 +13,7 @@
   <meta property="og:url" content="https://yusyfyunus.github.io/arabic-words-game/">
   <meta property="og:image" content="https://yusyfyunus.github.io/arabic-words-game/og.png">
   <title>Арабский тренажёр</title>
-  <link rel="stylesheet" href="style.css?v=20260908-1">
+  <link rel="stylesheet" href="style.css?v=20260916-31">
 </head>
 <body>
   <main class="portal-shell" id="portal-home">
@@ -215,11 +215,12 @@
         </div>
         <div class="continue-settings">
           <label><input type="checkbox" id="continue-auto-speak" checked> Произносить аят автоматически</label>
-          <span>На iPhone микрофон включается до записи Аймана Сувайда. Дождись короткого сигнала после аята и начинай читать — подсказка не смешается с ответом.</span>
+          <span>Разреши микрофон при начале занятия. Он останется готовым между аятами и выключится при выходе. После короткого сигнала начинай читать.</span>
         </div>
         <p class="continue-compatibility">Все аяты перемешиваются между всеми сурами: подряд одна сура не идёт. Аудио Аймана Сувайда хранится в сайте и работает без интернета. Во время ответа скажи «повтори аят», «подожди» или «продолжай» — запись повторится, отсчёт остановится или возобновится. Для проверки голосом открой сайт через localhost или HTTPS и разреши доступ к микрофону. Само распознавание речи может зависеть от поддержки браузера.</p>
+        <p class="continue-origin-notice" id="continue-origin-notice" hidden>Сейчас открыт отдельный файл. Чтобы Chrome запомнил разрешение для сайта, открой <a href="http://localhost:4174/">локальную версию на этом Mac</a> или <a href="https://yusyfyunus.github.io/arabic-words-game/">публичную версию</a>. Разреши микрофон <strong>«при каждом посещении»</strong>, а не «только сейчас». Для локальной ссылки сервер должен быть запущен.</p>
         <div class="continue-start-row"><strong>79 аятов · все суры 114–101</strong><button id="start-continue-test">Начать занятие →</button></div>
-        <p class="continue-permission-status" id="continue-permission-status">При первом запуске Safari попросит разрешить микрофон.</p>
+        <p class="continue-permission-status" id="continue-permission-status">При первом запуске выбери в Chrome «Разрешать при каждом посещении» — тогда повторять разрешение для каждого аята не нужно.</p>
       </div>
       <div id="continue-test" hidden>
         <div class="continue-test-head">
@@ -288,15 +289,15 @@
   <script src="game.js?v=20260910-24"></script>
   <script src="ayah-game.js?v=20260914-27"></script>
   <script src="daily-game.js?v=20260914-27"></script>
-  <script src="continue-game.js?v=20260914-27"></script>
+  <script src="continue-game.js?v=20260916-31"></script>
   <script src="listen-game.js?v=20260914-27"></script>
   <script>
     if ("serviceWorker" in navigator && location.protocol === "https:") {
       let reloadingForUpdate = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20260914-27")) return;
+        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20260916-31")) return;
         reloadingForUpdate = true;
-        sessionStorage.setItem("kalimat-sw-20260914-27", "1");
+        sessionStorage.setItem("kalimat-sw-20260916-31", "1");
         location.reload();
       });
       navigator.serviceWorker.register("./sw.js")
