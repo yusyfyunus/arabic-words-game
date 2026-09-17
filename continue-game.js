@@ -480,7 +480,13 @@ function recitationSimilarity(spoken, expected) {
 function stripContinueCueFromTranscript(text) {
   const current = continueState.deck[continueState.index];
   const spoken = normalizeArabic(text);
-  if (!spoken || !current || current.isSurahStart) return spoken;
+  if (!spoken || !current) return spoken;
+  // Safari иногда повторно присылает уже услышанную подсказку после того,
+  // как запись закончилась. Не считаем её ответом ученицы.
+  const rawCue = normalizedContinueCommand(continueState.cueTranscript);
+  const rawSpoken = normalizedContinueCommand(text);
+  if (rawCue && rawSpoken === rawCue) return "";
+  if (current.isSurahStart) return spoken;
   const cue = normalizeArabic(current.fromArabic);
   const recognizedCue = normalizeArabic(continueState.cueTranscript);
   const expectedWords = normalizeArabic(current.nextArabic).split(" ").filter(Boolean);
@@ -739,7 +745,8 @@ function launchContinueRecognition(generation, automatic, onStarted) {
     continueState.recognitionActive = false;
     button.classList.remove("listening");
     button.textContent = "🎙️ Говорить продолжение";
-    clearTimeout(continueState.speechTimer);
+    // Если текст уже получен, его отложенная проверка должна состояться даже
+    // после короткой ошибки распознавания (часто бывает на iPhone Safari).
     const recoverable = lastError === "no-speech" || lastError === "aborted" || lastError === "language-fallback";
     if (!recoverable) {
       clearTimeout(continueState.minuteTimer);
@@ -765,7 +772,7 @@ function launchContinueRecognition(generation, automatic, onStarted) {
       handleContinueTranscript(bestTranscript, generation, automatic);
       return;
     }
-    if (receivedResult || continueState.speechTimer) return;
+    if (continueState.speechTimer) return;
     const recoverable = !lastError || lastError === "no-speech" || lastError === "aborted" || lastError === "language-fallback";
     if (recoverable) scheduleContinueRecognition(generation, automatic, lastError === "aborted" ? 900 : 650);
   };
@@ -794,10 +801,11 @@ function launchContinueRecognition(generation, automatic, onStarted) {
       if (result.isFinal && result[0]?.transcript) finalParts.push(result[0].transcript);
     }
     const heardText = heardParts.join(" ").trim();
-    if (heardText) {
+    const answerText = stripContinueCueFromTranscript(heardText);
+    if (answerText) {
       receivedResult = true;
       bestTranscript = heardText;
-      status.textContent = `Услышала: «${heardText}». Проверяю ответ…`;
+      status.textContent = `Услышала: «${answerText}». Проверяю ответ…`;
       clearTimeout(continueState.speechTimer);
       continueState.speechTimer = setTimeout(() => {
         if (transcriptCommitted || generation !== continueState.recognitionGeneration || continueState.answered) return;
@@ -807,7 +815,7 @@ function launchContinueRecognition(generation, automatic, onStarted) {
       }, 1600);
     }
     const finalText = finalParts.join(" ");
-    if (!finalText || transcriptCommitted) return;
+    if (!stripContinueCueFromTranscript(finalText) || transcriptCommitted) return;
     transcriptCommitted = true;
     handleContinueTranscript(finalText, generation, automatic);
   };

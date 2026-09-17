@@ -70,7 +70,7 @@
       <button class="dictionary-button" id="open-dictionary"><span aria-hidden="true">☰</span> Все слова</button>
     </header>
     <section class="hero" id="game">
-      <p class="eyebrow">6 уроков · 120 слов · твой личный тренажёр</p>
+      <p class="eyebrow">7 уроков · 131 слово · твой личный тренажёр</p>
       <h1>Запомни слово.<br><em>Узнай его с первого взгляда.</em></h1>
       <p class="intro">Короткие раунды на перевод и написание — по словам с твоих фотографий.</p>
     </section>
@@ -82,7 +82,8 @@
         <button id="scope-lesson4"><span>Четвёртый урок</span><strong>Урок 4</strong><small>24 слова</small></button>
         <button id="scope-lesson5"><span>Пятый урок</span><strong>Урок 5</strong><small>23 слова</small></button>
         <button id="scope-lesson6"><span>Шестой урок</span><strong>Урок 6</strong><small>16 слов</small></button>
-        <button id="scope-all"><span>Общий повтор</span><strong>Повторить всё</strong><small>120 слов пройдено</small></button>
+        <button id="scope-lesson7"><span>Седьмой урок</span><strong>Урок 7</strong><small>11 слов</small></button>
+        <button id="scope-all"><span>Общий повтор</span><strong>Повторить всё</strong><small>131 слово пройдено</small></button>
         <button id="scope-hard"><span>Личный тест</span><strong>Трудные слова</strong><small id="scope-hard-count">0 выбрано</small></button>
       </div>
       <div class="mode-switch" aria-label="Режим игры">
@@ -193,7 +194,7 @@
       </div>
       <div id="daily-result" hidden></div>
     </section>
-    <footer class="ayah-source">Материал: слова из уроков 1–6 и перевод смыслов «Калям Шариф» для сур 114–101.</footer>
+    <footer class="ayah-source">Материал: слова из уроков 1–7 и перевод смыслов «Калям Шариф» для сур 114–101.</footer>
   </main>
 
   <main class="continue-shell" id="continue-app" hidden>
@@ -286,18 +287,18 @@
   </main>
 
   <script src="juz30-data.js"></script>
-  <script src="game.js?v=20260910-24"></script>
+  <script src="game.js?v=20260917-32"></script>
   <script src="ayah-game.js?v=20260914-27"></script>
-  <script src="daily-game.js?v=20260914-27"></script>
-  <script src="continue-game.js?v=20260916-31"></script>
+  <script src="daily-game.js?v=20260917-32"></script>
+  <script src="continue-game.js?v=20260917-33"></script>
   <script src="listen-game.js?v=20260914-27"></script>
   <script>
     if ("serviceWorker" in navigator && location.protocol === "https:") {
       let reloadingForUpdate = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20260916-31")) return;
+        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20260917-33")) return;
         reloadingForUpdate = true;
-        sessionStorage.setItem("kalimat-sw-20260916-31", "1");
+        sessionStorage.setItem("kalimat-sw-20260917-33", "1");
         location.reload();
       });
       navigator.serviceWorker.register("./sw.js")
