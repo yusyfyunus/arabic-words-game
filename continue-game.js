@@ -105,8 +105,9 @@ const continueState = {
   recognitionActive: false,
   deck: continueDeck,
   recognition: null,
-  recognitionLanguage: "ar",
+  recognitionLanguage: "ar-SA",
   recognitionGeneration: 0,
+  recognitionRecoveryCount: 0,
   recognitionRestartTimer: null,
   recognitionWatchdogTimer: null,
   spokenParts: [],
@@ -640,6 +641,21 @@ function scheduleContinueRecognition(generation, automatic, delay = 650) {
 function recoverHungContinueRecognition(generation, automatic, recognition) {
   if (generation !== continueState.recognitionGeneration || continueState.answered || continueState.paused) return;
   const status = continueEl("continue-voice-status");
+  continueState.recognitionRecoveryCount += 1;
+  if (continueState.recognitionRecoveryCount >= 2) {
+    clearTimeout(continueState.minuteTimer);
+    clearTimeout(continueState.speechTimer);
+    stopContinueRecognition();
+    continueState.autoAdvance = false;
+    if (status) status.textContent = isContinueIOS()
+      ? "Микрофон включён, но Safari не передал текст ответа. Проверь, включена ли Siri в настройках iPhone, и нажми «Говорить продолжение» для новой попытки."
+      : "Микрофон включён, но браузер не передал текст ответа. Проверь соединение и нажми «Говорить продолжение» для новой попытки.";
+    const retry = continueEl("continue-speak");
+    if (retry) retry.hidden = false;
+    const reveal = continueEl("continue-reveal");
+    if (reveal) reveal.hidden = false;
+    return;
+  }
   if (status) status.textContent = "Браузер не передал услышанный текст. Перезапускаю распознавание автоматически…";
   recognition.onstart = null;
   recognition.onerror = null;
@@ -679,11 +695,14 @@ function handleContinueTranscript(finalText, generation, automatic) {
   }
   const answerText = stripContinueCueFromTranscript(finalText);
   if (!answerText) return;
-  continueState.spokenParts.push(answerText);
+  // SpeechRecognition может присылать один и тот же ответ заново, каждый раз
+  // добавляя очередной фрагмент. Храним последнюю полную версию, а не склеиваем
+  // её с предыдущими событиями.
+  continueState.spokenParts = [answerText];
   clearTimeout(continueState.speechTimer);
   continueState.speechTimer = setTimeout(
     () => evaluateContinueRecitation(continueState.spokenParts.join(" ")),
-    1200
+    1800
   );
 }
 
@@ -706,7 +725,6 @@ function launchContinueRecognition(generation, automatic, onStarted) {
   let lastError = "";
   let receivedResult = false;
   let bestTranscript = "";
-  let transcriptCommitted = false;
   const handleRecognitionStart = () => {
     if (generation !== continueState.recognitionGeneration) return;
     continueState.recognitionActive = true;
@@ -721,12 +739,12 @@ function launchContinueRecognition(generation, automatic, onStarted) {
     onStarted?.();
     onStarted = null;
     clearTimeout(continueState.recognitionWatchdogTimer);
-    if (!continueState.cuePlaying && isContinueIOS()) {
+    if (!continueState.cuePlaying) {
       continueState.recognitionWatchdogTimer = setTimeout(() => {
         if (!receivedResult && !continueState.answered) {
           recoverHungContinueRecognition(generation, automatic, recognition);
         }
-      }, 12000);
+      }, 15000);
     }
   };
   recognition.onstart = handleRecognitionStart;
@@ -767,8 +785,7 @@ function launchContinueRecognition(generation, automatic, onStarted) {
     button.classList.remove("listening");
     button.textContent = "🎙️ Говорить продолжение";
     if (continueState.repeating) return;
-    if (bestTranscript && !transcriptCommitted && !continueState.speechTimer) {
-      transcriptCommitted = true;
+    if (bestTranscript && !continueState.speechTimer) {
       handleContinueTranscript(bestTranscript, generation, automatic);
       return;
     }
@@ -783,8 +800,7 @@ function launchContinueRecognition(generation, automatic, onStarted) {
     // ответом пользователя; принимать речь начинаем только после окончания cue.
     if (continueState.cuePlaying) {
       const ignored = [];
-      const firstResult = Number.isInteger(event.resultIndex) ? event.resultIndex : 0;
-      for (let index = firstResult; index < event.results.length; index += 1) {
+      for (let index = 0; index < event.results.length; index += 1) {
         if (event.results[index]?.[0]?.transcript) ignored.push(event.results[index][0].transcript);
       }
       continueState.cueTranscript = ignored.join(" ").trim();
@@ -793,31 +809,21 @@ function launchContinueRecognition(generation, automatic, onStarted) {
     const heardParts = [];
     clearTimeout(continueState.recognitionWatchdogTimer);
     continueState.recognitionWatchdogTimer = null;
-    const finalParts = [];
-    const firstResult = Number.isInteger(event.resultIndex) ? event.resultIndex : 0;
-    for (let index = firstResult; index < event.results.length; index += 1) {
+    // event.resultIndex указывает только на изменившийся фрагмент. Если брать
+    // речь с этого индекса, длинный аят теряет уже распознанное начало.
+    for (let index = 0; index < event.results.length; index += 1) {
       const result = event.results[index];
       if (result[0]?.transcript) heardParts.push(result[0].transcript);
-      if (result.isFinal && result[0]?.transcript) finalParts.push(result[0].transcript);
     }
     const heardText = heardParts.join(" ").trim();
     const answerText = stripContinueCueFromTranscript(heardText);
     if (answerText) {
       receivedResult = true;
+      continueState.recognitionRecoveryCount = 0;
       bestTranscript = heardText;
-      status.textContent = `Услышала: «${answerText}». Проверяю ответ…`;
-      clearTimeout(continueState.speechTimer);
-      continueState.speechTimer = setTimeout(() => {
-        if (transcriptCommitted || generation !== continueState.recognitionGeneration || continueState.answered) return;
-        transcriptCommitted = true;
-        continueState.speechTimer = null;
-        handleContinueTranscript(bestTranscript, generation, automatic);
-      }, 1600);
+      status.textContent = `Услышала: «${answerText}». Проверю после паузы в речи…`;
+      handleContinueTranscript(heardText, generation, automatic);
     }
-    const finalText = finalParts.join(" ");
-    if (!stripContinueCueFromTranscript(finalText) || transcriptCommitted) return;
-    transcriptCommitted = true;
-    handleContinueTranscript(finalText, generation, automatic);
   };
   if (reuseActiveRecognition) {
     handleRecognitionStart();
@@ -856,6 +862,7 @@ function startContinueRecognitionBeforeCue(current, automatic = true, afterCue) 
   clearContinueTimers();
   if (!continueState.recognitionActive) stopContinueRecognition();
   continueState.autoAdvance = automatic;
+  continueState.recognitionRecoveryCount = 0;
   continueState.spokenParts = [];
   continueState.cuePlaying = true;
   continueState.cueTranscript = "";
@@ -884,13 +891,11 @@ function startContinueRecognitionBeforeCue(current, automatic = true, afterCue) 
         if (status) status.textContent = "Слушаю тебя. Произнеси следующий аят целиком — у тебя есть 1 минута.";
         const activeRecognition = continueState.recognition;
         clearTimeout(continueState.recognitionWatchdogTimer);
-        if (isContinueIOS()) {
-          continueState.recognitionWatchdogTimer = setTimeout(() => {
-            if (!continueState.spokenParts.length && !continueState.answered && activeRecognition) {
-              recoverHungContinueRecognition(generation, automatic, activeRecognition);
-            }
-          }, 15000);
-        }
+        continueState.recognitionWatchdogTimer = setTimeout(() => {
+          if (!continueState.spokenParts.length && !continueState.answered && activeRecognition) {
+            recoverHungContinueRecognition(generation, automatic, activeRecognition);
+          }
+        }, 15000);
         afterCue?.();
       }), 1800);
     });
@@ -913,6 +918,7 @@ function startContinueRecognition(automatic = false) {
   clearTimeout(continueState.recognitionRestartTimer);
   stopContinueRecognition();
   continueState.autoAdvance = automatic;
+  continueState.recognitionRecoveryCount = 0;
   continueState.spokenParts = [];
   continueState.listenUntil = Date.now() + 60000;
   const generation = continueState.recognitionGeneration;
