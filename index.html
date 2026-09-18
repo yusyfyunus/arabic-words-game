@@ -290,15 +290,15 @@
   <script src="game.js?v=20260917-32"></script>
   <script src="ayah-game.js?v=20260914-27"></script>
   <script src="daily-game.js?v=20260917-32"></script>
-  <script src="continue-game.js?v=20260917-33"></script>
+  <script src="continue-game.js?v=20260918-35"></script>
   <script src="listen-game.js?v=20260914-27"></script>
   <script>
     if ("serviceWorker" in navigator && location.protocol === "https:") {
       let reloadingForUpdate = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20260917-33")) return;
+        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20260918-35")) return;
         reloadingForUpdate = true;
-        sessionStorage.setItem("kalimat-sw-20260917-33", "1");
+        sessionStorage.setItem("kalimat-sw-20260918-35", "1");
         location.reload();
       });
       navigator.serviceWorker.register("./sw.js")
