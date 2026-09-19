@@ -121,6 +121,7 @@ const continueState = {
   microphoneStream: null,
   microphonePermissionPromise: null,
   microphonePermission: "unknown",
+  microphonePrimed: false,
   microphoneRequestGeneration: 0,
   listenUntil: 0,
   speechTimer: null,
@@ -179,6 +180,14 @@ function stopContinueAudio() {
     try { continueState.audio.currentTime = 0; } catch (error) { /* Safari может запретить перемотку незагруженного файла */ }
     continueState.audio = null;
   }
+}
+
+function setContinueAudioSession(type) {
+  try {
+    if (navigator.audioSession && "type" in navigator.audioSession) {
+      navigator.audioSession.type = type;
+    }
+  } catch (error) { /* Audio Session API поддерживается не во всех версиях Safari */ }
 }
 
 function continueAyahAudioUrl(surahNumber, ayahNumber) {
@@ -284,6 +293,7 @@ function playContinueAyahElement(ayah, token, onEnd, onError) {
 
 function playContinueAyah(ayah, onEnd, onError) {
   stopContinueAudio();
+  setContinueAudioSession("playback");
   const token = continueState.audioToken;
   const context = ensureContinueAudioContext();
   if (!context) return playContinueAyahElement(ayah, token, onEnd, onError);
@@ -293,8 +303,10 @@ function playContinueAyah(ayah, onEnd, onError) {
     if (failed || token !== continueState.audioToken) return;
     failed = true;
     // Резервный обычный плеер нужен только для старых браузеров, где Web Audio
-    // не смог декодировать mp3. На iPhone основной путь не создаёт <audio>.
-    playContinueAyahElement(ayah, token, onEnd, onError);
+    // не смог декодировать mp3. На iPhone не создаём <audio>: в Safari 26
+    // воспроизведение media-элемента может полностью зависнуть SpeechRecognition.
+    if (isContinueIOS()) onError?.();
+    else playContinueAyahElement(ayah, token, onEnd, onError);
   };
   loadContinueAudioBuffer(url)
     .then((buffer) => context.resume().then(() => buffer))
@@ -336,6 +348,12 @@ function playContinueQuestionCue(item, onEnd) {
 }
 
 function prepareContinueMicrophone() {
+  // На iPhone достаточно один раз получить разрешение. Постоянно открытый
+  // getUserMedia-поток может конкурировать со встроенным SpeechRecognition,
+  // поэтому после первого разрешения Safari использует микрофон сам.
+  if (isContinueIOS() && continueState.microphonePrimed && continueState.microphonePermission === "granted") {
+    return Promise.resolve(true);
+  }
   if (continueState.microphoneStream?.getAudioTracks().some((track) => track.readyState === "live")) {
     return Promise.resolve(true);
   }
@@ -354,8 +372,14 @@ function prepareContinueMicrophone() {
         stream.getTracks().forEach((track) => track.stop());
         return false;
       }
-      continueState.microphoneStream = stream;
       continueState.microphonePermission = "granted";
+      continueState.microphonePrimed = true;
+      if (isContinueIOS()) {
+        // Разрешение уже получено; освобождаем физический вход перед запуском
+        // Web Speech API, иначе на iPhone индикатор мигает без результатов.
+        stream.getTracks().forEach((track) => track.stop());
+        continueState.microphoneStream = null;
+      } else continueState.microphoneStream = stream;
       if (setupStatus) setupStatus.textContent = "Микрофон готов на всё занятие. При выходе он выключится.";
       return true;
     })
@@ -382,6 +406,7 @@ function releaseContinueMicrophone() {
   continueState.microphoneStream?.getTracks().forEach((track) => track.stop());
   continueState.microphoneStream = null;
   continueState.microphonePermissionPromise = null;
+  continueState.microphonePrimed = false;
 }
 
 function beginContinueListeningAfterPrompt(automatic = true) {
@@ -703,7 +728,7 @@ function handleContinueTranscript(finalText, generation, automatic) {
   clearTimeout(continueState.speechTimer);
   continueState.speechTimer = setTimeout(
     () => evaluateContinueRecitation(collectContinueTranscript()),
-    8000
+    1800
   );
 }
 
@@ -719,6 +744,7 @@ function launchContinueRecognition(generation, automatic, onStarted) {
   const button = continueEl("continue-speak");
   const status = continueEl("continue-voice-status");
   if (!Recognition || generation !== continueState.recognitionGeneration || continueState.answered) return;
+  setContinueAudioSession("play-and-record");
   const reuseActiveRecognition = continueState.recognitionActive && Boolean(continueState.recognition);
   const recognition = reuseActiveRecognition ? continueState.recognition : new Recognition();
   continueState.recognition = recognition;
@@ -863,7 +889,8 @@ function launchContinueRecognition(generation, automatic, onStarted) {
       continueState.recognitionRecoveryCount = 0;
       bestTranscript = heardText;
       handleContinueTranscript(heardText, generation, automatic);
-      status.textContent = `Услышала: «${collectContinueTranscript()}». Жду продолжение; проверю после 8 секунд тишины.`;
+      const transcript = collectContinueTranscript();
+      status.textContent = `Услышала: «${transcript}». Проверяю после короткой паузы.`;
     }
   };
   if (reuseActiveRecognition) {
@@ -919,6 +946,10 @@ function startContinueRecognitionBeforeCue(current, automatic = true, afterCue) 
   playContinueQuestionCue(current, () => {
     if (generation !== continueState.recognitionGeneration || continueState.answered) return;
     if (status) status.textContent = "Аят закончен. Дождись короткого сигнала и начинай читать после него.";
+    // WebKit на iPhone может перестать отдавать onresult, если распознавание
+    // запустить сразу после аудио. Даём аудиосессии освободиться, затем подаём
+    // короткий сигнал: именно после него начинается минутный ответ.
+    const recognitionCooldown = isContinueIOS() ? 4500 : 350;
     setTimeout(() => playContinueReadyTone(() => {
       if (generation !== continueState.recognitionGeneration || continueState.answered) return;
       continueState.cuePlaying = false;
@@ -930,13 +961,13 @@ function startContinueRecognitionBeforeCue(current, automatic = true, afterCue) 
         () => evaluateContinueRecitation(collectContinueTranscript()),
         60000
       );
-      if (status) status.textContent = "Слушаю тебя до 1 минуты. Проверю ответ после 8 секунд тишины.";
+      if (status) status.textContent = "Слушаю тебя до 1 минуты. После ответа сделай короткую паузу — я сразу проверю.";
       launchContinueRecognition(generation, automatic, () => {
         if (generation !== continueState.recognitionGeneration || continueState.answered) return;
-        if (status) status.textContent = "Слушаю тебя до 1 минуты. Проверю ответ после 8 секунд тишины.";
+        if (status) status.textContent = "Слушаю тебя до 1 минуты. После ответа сделай короткую паузу — я сразу проверю.";
         afterCue?.();
       });
-    }), isContinueIOS() ? 700 : 350);
+    }), recognitionCooldown);
   });
 }
 

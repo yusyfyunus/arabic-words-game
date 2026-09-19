@@ -988,6 +988,16 @@ button { color: inherit; }
 .listen-result-screen { padding: 55px 35px 62px; text-align: center; }
 .listen-result-screen h2 { margin: 0; font-family: Georgia, serif; font-size: 34px; font-weight: 500; }
 .listen-result-screen > p:not(.eyebrow) { margin: 16px auto 25px; color: rgba(23,51,43,.62); line-height: 1.55; }
+.listen-error-list { width: min(820px, 100%); margin: 28px auto; text-align: left; }
+.listen-error-list h3 { margin: 0 0 14px; color: var(--forest-dark); font-family: Georgia, serif; font-size: 25px; font-weight: 500; }
+.listen-error-note { margin: -3px 0 15px; color: rgba(23,51,43,.62); font-size: 12px; line-height: 1.55; }
+.listen-error-item { margin-top: 12px; padding: 18px; border: 1px solid #dfc5e8; border-radius: 13px; background: #fbf7fd; }
+.listen-error-meta { color: #71528a; font-size: 11px; font-weight: 850; text-transform: uppercase; letter-spacing: .07em; }
+.listen-error-arabic { margin: 9px 0; color: var(--forest-dark); font-family: "Uthmanic Hafs", "Geeza Pro", serif; font-size: 28px; line-height: 1.8; }
+.listen-error-item p { margin: 7px 0; color: rgba(23,51,43,.72); font-size: 12px; line-height: 1.5; }
+.listen-error-missing { color: #93462f !important; }
+.listen-missed-word { padding: 1px 3px; border-radius: 4px; background: #f7d8ce; color: #7f3427; }
+.listen-error-item button { margin-top: 8px; padding: 9px 12px; border: 1px solid #71528a; border-radius: 8px; background: white; color: #604478; cursor: pointer; font-size: 11px; font-weight: 800; }
 
 @media (max-width: 760px) {
   .listen-shell { padding: 0 14px 50px; }

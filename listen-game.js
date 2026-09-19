@@ -16,6 +16,12 @@ const listenState = {
   spokenParts: [], timer: null, gradeTimer: null, deadlineTimer: null, token: 0
 };
 const listenEl = (id) => document.getElementById(id);
+const listenEscape = (value) => String(value)
+  .replaceAll("&", "&amp;")
+  .replaceAll("<", "&lt;")
+  .replaceAll(">", "&gt;")
+  .replaceAll('"', "&quot;")
+  .replaceAll("'", "&#039;");
 
 function shuffleListenItems(items) {
   const result = [...items];
@@ -48,6 +54,24 @@ function listenTranslationScore(spoken, expected) {
   if (!heard.length || !target.length) return 0;
   const matched = target.filter((word) => heard.some((candidate) => listenWordMatches(word, candidate))).length;
   return matched / target.length;
+}
+
+function listenMissingWords(spoken, expected) {
+  const heard = normalizeListenWords(spoken);
+  const missing = normalizeListenWords(expected)
+    .filter((word) => !heard.some((candidate) => listenWordMatches(word, candidate)));
+  return [...new Set(missing)];
+}
+
+function listenHighlightedTranslation(expected, missingWords = []) {
+  const missing = new Set(missingWords);
+  return String(expected).split(/(\s+)/).map((part) => {
+    const normalized = normalizeListenWords(part)[0];
+    const escaped = listenEscape(part);
+    return normalized && missing.has(normalized)
+      ? `<mark class="listen-missed-word">${escaped}</mark>`
+      : escaped;
+  }).join("");
 }
 
 function stopListenRecognition() {
@@ -117,7 +141,11 @@ function finishListenAnswer(correct, transcript = "") {
   listenEl("listen-translation").textContent = item.russian;
   listenEl("listen-heard").textContent = transcript ? `Услышано: ${transcript}` : "";
   if (correct) listenState.score += 1;
-  else listenState.errors.push(item);
+  else listenState.errors.push({
+    ...item,
+    heard: transcript || "Ответ не распознан",
+    missing: listenMissingWords(transcript, item.russian)
+  });
   updateListenProgress();
 
   const moveOn = () => {
@@ -268,14 +296,35 @@ function showListenResult() {
   listenState.running = false;
   listenEl("listen-player").hidden = true;
   listenEl("listen-result").hidden = false;
+  const errorList = listenState.errors.length ? `
+    <section class="listen-error-list">
+      <h3>Где именно были ошибки</h3>
+      <p class="listen-error-note">Цветом выделены слова правильного перевода, которые сайт не услышал или распознал иначе.</p>
+      ${listenState.errors.map((error, errorIndex) => `
+        <article class="listen-error-item">
+          <div class="listen-error-meta">${listenEscape(error.surahName)} · аят ${error.number}</div>
+          <div class="listen-error-arabic" dir="rtl" lang="ar">${listenEscape(error.arabic)}</div>
+          <p><strong>Сайт услышал:</strong> ${listenEscape(error.heard)}</p>
+          <p><strong>Правильный перевод:</strong> ${listenHighlightedTranslation(error.russian, error.missing)}</p>
+          <p class="listen-error-missing"><strong>Пропущено или сказано иначе:</strong> ${listenEscape(error.missing.join(", ") || "ответ был близок, но совпадение оказалось ниже 50%")}</p>
+          <button type="button" data-listen-error-audio="${errorIndex}">🔊 Послушать аят</button>
+        </article>`).join("")}
+    </section>` : "";
   listenEl("listen-result").innerHTML = `
     <div class="listen-result-screen">
       <p class="eyebrow">Проверка завершена</p>
       <h2>${listenState.score} из ${listenState.deck.length} переводов верно</h2>
       <p>${listenState.errors.length ? `Повтори аяты, где было ошибок: ${listenState.errors.length}.` : "Ма ша Аллах — все переводы приняты без ошибок."}</p>
+      ${errorList}
       <button id="repeat-listen-session">Начать заново</button>
     </div>`;
   listenEl("repeat-listen-session").addEventListener("click", startListenSession);
+  document.querySelectorAll("[data-listen-error-audio]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const error = listenState.errors[Number(button.dataset.listenErrorAudio)];
+      if (error) new Audio(listenAudioUrl(error)).play().catch(() => {});
+    });
+  });
 }
 
 function startListenSession() {
