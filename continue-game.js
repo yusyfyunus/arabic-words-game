@@ -111,6 +111,7 @@ const continueState = {
   recognitionRestartTimer: null,
   recognitionWatchdogTimer: null,
   spokenParts: [],
+  currentTranscript: "",
   audio: null,
   audioPlayer: null,
   audioContext: null,
@@ -695,15 +696,22 @@ function handleContinueTranscript(finalText, generation, automatic) {
   }
   const answerText = stripContinueCueFromTranscript(finalText);
   if (!answerText) return;
-  // SpeechRecognition может присылать один и тот же ответ заново, каждый раз
-  // добавляя очередной фрагмент. Храним последнюю полную версию, а не склеиваем
-  // её с предыдущими событиями.
-  continueState.spokenParts = [answerText];
+  // Внутри одного сеанса SpeechRecognition каждый раз присылает более полную
+  // версию текущей фразы. Храним её отдельно; завершённые сеансы остаются в
+  // spokenParts, чтобы пауза внутри длинного аята не обрезала начало ответа.
+  continueState.currentTranscript = answerText;
   clearTimeout(continueState.speechTimer);
   continueState.speechTimer = setTimeout(
-    () => evaluateContinueRecitation(continueState.spokenParts.join(" ")),
-    1800
+    () => evaluateContinueRecitation(collectContinueTranscript()),
+    8000
   );
+}
+
+function collectContinueTranscript() {
+  return [...continueState.spokenParts, continueState.currentTranscript]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
 }
 
 function launchContinueRecognition(generation, automatic, onStarted) {
@@ -718,9 +726,10 @@ function launchContinueRecognition(generation, automatic, onStarted) {
   // Safari на iPhone нередко возвращает услышанный текст как interim и
   // завершает короткий сеанс без отдельного final-события.
   recognition.interimResults = true;
-  // Один непрерывный сеанс на всё занятие: новый аят не вызывает новый запрос
-  // доступа. Если браузер сам завершит распознавание, onend перезапустит его.
-  recognition.continuous = true;
+  // На iPhone continuous=true работает нестабильно: Safari может зависнуть и
+  // больше не прислать onresult. Короткие сеансы автоматически перезапускаются
+  // через onend, а доступ к микрофону остаётся выданным на всё занятие.
+  recognition.continuous = !isContinueIOS();
   recognition.maxAlternatives = 3;
   let lastError = "";
   let receivedResult = false;
@@ -763,15 +772,27 @@ function launchContinueRecognition(generation, automatic, onStarted) {
     continueState.recognitionActive = false;
     button.classList.remove("listening");
     button.textContent = "🎙️ Говорить продолжение";
+    // Если служба распознавания кратковременно потеряла соединение, пробуем
+    // ещё два раза. На iPhone Safari первый запуск после аудио нередко
+    // заканчивается network, хотя следующая попытка уже возвращает текст.
+    const retryNetwork = lastError === "network"
+      && navigator.onLine !== false
+      && continueState.recognitionRecoveryCount < 2;
+    if (retryNetwork) continueState.recognitionRecoveryCount += 1;
+    else if (lastError === "network") continueState.recognitionRecoveryCount = 3;
     // Если текст уже получен, его отложенная проверка должна состояться даже
     // после короткой ошибки распознавания (часто бывает на iPhone Safari).
-    const recoverable = lastError === "no-speech" || lastError === "aborted" || lastError === "language-fallback";
+    const recoverable = lastError === "no-speech"
+      || lastError === "aborted"
+      || lastError === "language-fallback"
+      || retryNetwork;
     if (!recoverable) {
       clearTimeout(continueState.minuteTimer);
       continueState.autoAdvance = false;
       if (["not-allowed", "service-not-allowed", "audio-capture"].includes(lastError)) releaseContinueMicrophone();
     }
     if (lastError === "language-fallback") status.textContent = "Переключаю Safari на общий арабский язык и продолжаю слушать.";
+    else if (retryNetwork) status.textContent = `Связь со службой распознавания прервалась. Повторяю подключение (${continueState.recognitionRecoveryCount} из 2)…`;
     else if (lastError !== "aborted") status.textContent = continueRecognitionErrorMessage(lastError);
     button.hidden = recoverable && automatic;
     continueEl("continue-reveal").hidden = recoverable;
@@ -785,13 +806,33 @@ function launchContinueRecognition(generation, automatic, onStarted) {
     button.classList.remove("listening");
     button.textContent = "🎙️ Говорить продолжение";
     if (continueState.repeating) return;
-    if (bestTranscript && !continueState.speechTimer) {
+    if (bestTranscript && !continueState.currentTranscript) {
       handleContinueTranscript(bestTranscript, generation, automatic);
+    }
+    if (continueState.currentTranscript) {
+      const lastPart = continueState.spokenParts.at(-1);
+      if (lastPart !== continueState.currentTranscript) {
+        continueState.spokenParts.push(continueState.currentTranscript);
+      }
+      continueState.currentTranscript = "";
+    }
+    // После короткой паузы Safari завершает один сеанс. Пока не прошло
+    // 8 секунд тишины, запускаем следующий и продолжаем собирать тот же аят.
+    if (continueState.speechTimer) {
+      if (automatic && Date.now() < continueState.listenUntil) {
+        scheduleContinueRecognition(generation, automatic, 300);
+      }
       return;
     }
-    if (continueState.speechTimer) return;
-    const recoverable = !lastError || lastError === "no-speech" || lastError === "aborted" || lastError === "language-fallback";
-    if (recoverable) scheduleContinueRecognition(generation, automatic, lastError === "aborted" ? 900 : 650);
+    const recoverable = !lastError
+      || lastError === "no-speech"
+      || lastError === "aborted"
+      || lastError === "language-fallback"
+      || (lastError === "network" && continueState.autoAdvance && continueState.recognitionRecoveryCount < 3);
+    if (recoverable) {
+      const retryDelay = lastError === "network" ? 1800 : lastError === "aborted" ? 900 : 650;
+      scheduleContinueRecognition(generation, automatic, retryDelay);
+    }
   };
   recognition.onresult = (event) => {
     if (generation !== continueState.recognitionGeneration) return;
@@ -821,8 +862,8 @@ function launchContinueRecognition(generation, automatic, onStarted) {
       receivedResult = true;
       continueState.recognitionRecoveryCount = 0;
       bestTranscript = heardText;
-      status.textContent = `Услышала: «${answerText}». Проверю после паузы в речи…`;
       handleContinueTranscript(heardText, generation, automatic);
+      status.textContent = `Услышала: «${collectContinueTranscript()}». Жду продолжение; проверю после 8 секунд тишины.`;
     }
   };
   if (reuseActiveRecognition) {
@@ -860,45 +901,42 @@ function startContinueRecognitionBeforeCue(current, automatic = true, afterCue) 
     return;
   }
   clearContinueTimers();
-  if (!continueState.recognitionActive) stopContinueRecognition();
+  stopContinueRecognition();
   continueState.autoAdvance = automatic;
   continueState.recognitionRecoveryCount = 0;
   continueState.spokenParts = [];
+  continueState.currentTranscript = "";
   continueState.cuePlaying = true;
   continueState.cueTranscript = "";
   continueState.listenUntil = Date.now() + 90000;
   const generation = continueState.recognitionGeneration;
-  let cueStarted = false;
-  launchContinueRecognition(generation, automatic, () => {
-    if (cueStarted || generation !== continueState.recognitionGeneration) return;
-    cueStarted = true;
-    if (status) status.textContent = current.isSurahStart
-      ? "Микрофон включён. Слушай название суры, затем начинай читать."
-      : "Микрофон включён. Слушай аят Аймана Сувайда, затем продолжай.";
-    playContinueQuestionCue(current, () => {
+  // Не запускаем SpeechRecognition во время записи Аймана Сувайда. Иначе
+  // телефон слышит динамик, смешивает вопрос с ответом ученицы и может сам
+  // завершить распознавание ещё до начала ответа.
+  if (status) status.textContent = current.isSurahStart
+    ? "Слушай название суры. После короткого сигнала микрофон начнёт слушать тебя."
+    : "Слушай аят Аймана Сувайда. После короткого сигнала микрофон начнёт слушать тебя.";
+  playContinueQuestionCue(current, () => {
+    if (generation !== continueState.recognitionGeneration || continueState.answered) return;
+    if (status) status.textContent = "Аят закончен. Дождись короткого сигнала и начинай читать после него.";
+    setTimeout(() => playContinueReadyTone(() => {
       if (generation !== continueState.recognitionGeneration || continueState.answered) return;
-      if (status) status.textContent = "Аят закончен. Дождись короткого сигнала и начинай читать после него.";
-      setTimeout(() => playContinueReadyTone(() => {
+      continueState.cuePlaying = false;
+      continueState.spokenParts = [];
+      continueState.currentTranscript = "";
+      continueState.listenUntil = Date.now() + 60000;
+      clearTimeout(continueState.minuteTimer);
+      continueState.minuteTimer = setTimeout(
+        () => evaluateContinueRecitation(collectContinueTranscript()),
+        60000
+      );
+      if (status) status.textContent = "Слушаю тебя до 1 минуты. Проверю ответ после 8 секунд тишины.";
+      launchContinueRecognition(generation, automatic, () => {
         if (generation !== continueState.recognitionGeneration || continueState.answered) return;
-        continueState.cuePlaying = false;
-        continueState.spokenParts = [];
-        continueState.listenUntil = Date.now() + 60000;
-        clearTimeout(continueState.minuteTimer);
-        continueState.minuteTimer = setTimeout(
-          () => evaluateContinueRecitation(continueState.spokenParts.join(" ")),
-          60000
-        );
-        if (status) status.textContent = "Слушаю тебя. Произнеси следующий аят целиком — у тебя есть 1 минута.";
-        const activeRecognition = continueState.recognition;
-        clearTimeout(continueState.recognitionWatchdogTimer);
-        continueState.recognitionWatchdogTimer = setTimeout(() => {
-          if (!continueState.spokenParts.length && !continueState.answered && activeRecognition) {
-            recoverHungContinueRecognition(generation, automatic, activeRecognition);
-          }
-        }, 15000);
+        if (status) status.textContent = "Слушаю тебя до 1 минуты. Проверю ответ после 8 секунд тишины.";
         afterCue?.();
-      }), 1800);
-    });
+      });
+    }), isContinueIOS() ? 700 : 350);
   });
 }
 
@@ -920,10 +958,11 @@ function startContinueRecognition(automatic = false) {
   continueState.autoAdvance = automatic;
   continueState.recognitionRecoveryCount = 0;
   continueState.spokenParts = [];
+  continueState.currentTranscript = "";
   continueState.listenUntil = Date.now() + 60000;
   const generation = continueState.recognitionGeneration;
   continueState.minuteTimer = setTimeout(
-    () => evaluateContinueRecitation(continueState.spokenParts.join(" ")),
+    () => evaluateContinueRecitation(collectContinueTranscript()),
     60000
   );
   launchContinueRecognition(generation, automatic);
@@ -1176,9 +1215,15 @@ continueEl("start-continue-test").addEventListener("click", () => {
   unlockContinueAudio();
   startContinueTest(false);
   const current = continueState.deck[continueState.index];
+  const voiceStatus = continueEl("continue-voice-status");
+  if (voiceStatus) voiceStatus.textContent = "Включаю микрофон. Если браузер спросит разрешение, выбери «Разрешить».";
   prepareContinueMicrophone().then((granted) => {
     if (granted && continueEl("continue-auto-speak").checked) {
       startContinueRecognitionBeforeCue(current, true);
+    } else if (!granted && voiceStatus) {
+      voiceStatus.textContent = "Микрофон не включился. Разреши доступ к нему для этого сайта, затем нажми «Послушать аят».";
+      const listenButton = continueEl("continue-listen");
+      if (listenButton) listenButton.hidden = false;
     }
   });
 });
