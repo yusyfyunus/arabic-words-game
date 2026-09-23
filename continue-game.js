@@ -1,11 +1,10 @@
 // «Начни или продолжи аят»: приложение называет суру либо произносит один аят,
 // а пользователь читает первый либо следующий аят. Ответ проверяется без огласовок.
 const CONTINUE_SURAHS = JUZ30_SURAHS
-  .filter((surah) => surah.number >= 101 && surah.number <= 114)
+  .filter((surah) => surah.number >= 100 && surah.number <= 114)
   .sort((a, b) => b.number - a.number);
 const AYMAN_SOWAID_AUDIO_BASE = "audio/ayman-suwaid/";
-const CONTINUE_SESSION_KEY = "kalimat-continue-session-v4";
-const CONTINUE_CYCLE_KEY = "kalimat-continue-cycle-v2";
+const CONTINUE_SESSION_KEY = "kalimat-continue-session-v5";
 
 function shuffleContinueItems(items) {
   const result = [...items];
@@ -20,20 +19,7 @@ function continueItemId(item) {
   return `${item.surahNumber}:${item.nextNumber}`;
 }
 
-function loadContinueCycle() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(CONTINUE_CYCLE_KEY) || "[]");
-    return new Set(Array.isArray(saved) ? saved : []);
-  } catch (error) {
-    return new Set();
-  }
-}
-
-function saveContinueCycle(completedIds) {
-  try { localStorage.setItem(CONTINUE_CYCLE_KEY, JSON.stringify([...completedIds])); } catch (error) { /* хранилище может быть недоступно */ }
-}
-
-function buildContinueDeck(excludedIds = new Set()) {
+function buildContinueDeck() {
   // Каждая сура — отдельная «дорожка». Первый аят тоже является заданием:
   // приложение называет суру, а пользователь начинает её. Затем идут переходы.
   // Берём по одному заданию из разных сур, чтобы одна сура не шла подряд.
@@ -65,9 +51,7 @@ function buildContinueDeck(excludedIds = new Set()) {
     }));
     return {
       surahNumber: surah.number,
-      items: shuffleContinueItems([startItem, ...transitionItems]
-        .filter(Boolean)
-        .filter((item) => !excludedIds.has(continueItemId(item))))
+      items: shuffleContinueItems([startItem, ...transitionItems].filter(Boolean))
     };
   });
   const deck = [];
@@ -82,13 +66,8 @@ function buildContinueDeck(excludedIds = new Set()) {
   return deck;
 }
 
-const continueCompletedIds = loadContinueCycle();
-let continueDeck = buildContinueDeck(continueCompletedIds);
-if (!continueDeck.length) {
-  continueCompletedIds.clear();
-  saveContinueCycle(continueCompletedIds);
-  continueDeck = buildContinueDeck();
-}
+const continueCompletedIds = new Set();
+const continueDeck = buildContinueDeck();
 
 const continueState = {
   index: 0,
@@ -436,7 +415,7 @@ function beginContinueListeningAfterPrompt(automatic = true) {
 function saveContinueSession(phase = "test") {
   try {
     localStorage.setItem(CONTINUE_SESSION_KEY, JSON.stringify({
-      version: 3,
+      version: 4,
       phase,
       index: continueState.index,
       score: continueState.score,
@@ -458,7 +437,6 @@ function completeCurrentContinueItem() {
   const current = continueState.deck[continueState.index];
   if (!current) return;
   continueState.completedIds.add(continueItemId(current));
-  saveContinueCycle(continueState.completedIds);
 }
 
 function repeatCurrentContinueAyah() {
@@ -1134,12 +1112,8 @@ function startContinueTest(autoPlay = true) {
   continueState.cuePlaying = false;
   continueState.cueTranscript = "";
   continueState.autoAdvance = true;
-  continueState.deck = buildContinueDeck(continueState.completedIds);
-  if (!continueState.deck.length) {
-    continueState.completedIds.clear();
-    saveContinueCycle(continueState.completedIds);
-    continueState.deck = buildContinueDeck();
-  }
+  continueState.completedIds = new Set();
+  continueState.deck = buildContinueDeck();
   continueEl("continue-setup").hidden = true;
   continueEl("continue-result").hidden = true;
   continueEl("continue-test").hidden = false;
@@ -1202,7 +1176,7 @@ function restoreContinueSession() {
     const isRecent = saved?.savedAt && Date.now() - saved.savedAt < 14 * 24 * 60 * 60 * 1000;
     const hasDeck = Array.isArray(saved?.deck) && saved.deck.length > 0;
     const validIndex = Number.isInteger(saved?.index) && saved.index >= 0 && saved.index < saved.deck?.length;
-    if (saved?.version !== 3 || !isRecent || !hasDeck || !validIndex) return false;
+    if (saved?.version !== 4 || !isRecent || !hasDeck || !validIndex) return false;
     continueState.deck = saved.deck;
     continueState.index = saved.index;
     continueState.score = Number(saved.score) || 0;

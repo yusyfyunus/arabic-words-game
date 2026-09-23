@@ -13,7 +13,7 @@
   <meta property="og:url" content="https://yusyfyunus.github.io/arabic-words-game/">
   <meta property="og:image" content="https://yusyfyunus.github.io/arabic-words-game/og.png">
   <title>Арабский тренажёр</title>
-  <link rel="stylesheet" href="style.css?v=20260919-40">
+  <link rel="stylesheet" href="style.css?v=20260916-31">
 </head>
 <body>
   <main class="portal-shell" id="portal-home">
@@ -24,8 +24,8 @@
     </header>
     <section class="portal-hero">
       <p class="eyebrow">Выбери, что будем учить</p>
-      <h1>Шесть путей.<br><em>Одна цель — понимать.</em></h1>
-      <p>Слова из сур, перевод аятов, ежедневное повторение и чтение на слух.</p>
+      <h1>Семь путей.<br><em>Одна цель — понимать.</em></h1>
+      <p>Слова, аяты, тафсир, ежедневное повторение и проверка перевода на слух.</p>
     </section>
     <section class="project-choice-grid">
       <button class="project-choice words-choice" data-open-project="words">
@@ -36,17 +36,22 @@
       <button class="project-choice ayahs-choice" data-open-project="ayahs">
         <span class="project-number">02</span><span class="project-arabic" lang="ar" dir="rtl">آيَاتٌ</span>
         <small>Учим перевод аятов</small><strong>30-й джуз</strong>
-        <p>37 сур · 564 аята · перевод «Калям Шариф» · тест номеров 114–101.</p><i>Выбрать суру →</i>
+        <p>37 сур · 564 аята · перевод «Калям Шариф» · тест номеров 114–100.</p><i>Выбрать суру →</i>
       </button>
       <button class="project-choice full-juz-choice" data-open-project="full-juz">
         <span class="project-number">03</span><span class="project-arabic" lang="ar" dir="rtl">جُزْءُ عَمَّ</span>
         <small>Общий тест по всем сурам</small><strong>Весь 30-й джуз</strong>
         <p>37 сур · 564 аята · оба направления · 1202 задания.</p><i>Начать общий тест →</i>
       </button>
+      <button class="project-choice tafsir-choice" data-open-project="tafsir">
+        <span class="project-number">04</span><span class="project-arabic" lang="ar" dir="rtl">تَفْسِيرٌ</span>
+        <small>Понимаем смысл глубже</small><strong>Закрепляем тафсир</strong>
+        <p>15 коротких сур с историей ниспослания и проверкой источников.</p><i>Изучить пятнадцать сур →</i>
+      </button>
       <button class="project-choice daily-choice" data-open-project="daily">
         <span class="project-number">05</span><span class="project-arabic" lang="ar" dir="rtl">مُرَاجَعَةٌ</span>
         <small>Закрепляем каждый день</small><strong>Быстрый тест</strong>
-        <p>Весь пройденный материал до Аль-Кариа, разделённый на 7 удобных дней.</p><i>Выбрать день →</i>
+        <p>Весь пройденный материал до Аль-Адият, разделённый на 7 удобных дней.</p><i>Выбрать день →</i>
       </button>
       <button class="project-choice continue-choice" data-open-project="continue">
         <span class="project-number">06</span><span class="project-arabic" lang="ar" dir="rtl">تَابِعْ</span>
@@ -147,9 +152,9 @@
           <div class="sticky-start"><div><small>В тесте</small><strong id="custom-start-label">Выбери хотя бы одну суру</strong></div><button id="start-custom-test" disabled>Начать тест</button></div>
         </div>
         <div id="surah-facts-panel" hidden>
-          <div class="ayah-setup-heading"><div><p class="eyebrow">14 сур · 114–101</p><h2>Номер и аяты одним вопросом</h2></div><p>В каждом вопросе сразу выбери номер суры и количество аятов.</p></div>
+          <div class="ayah-setup-heading"><div><p class="eyebrow">15 сур · 114–100</p><h2>Номер и аяты одним вопросом</h2></div><p>В каждом вопросе сразу выбери номер суры и количество аятов.</p></div>
           <div class="surah-grid" id="surah-facts-grid"></div>
-          <div class="sticky-start"><div><small>В тесте</small><strong>14 заданий · суры 114–101</strong></div><button id="start-surah-facts-test">Начать тест</button></div>
+          <div class="sticky-start"><div><small>В тесте</small><strong>15 заданий · суры 114–100</strong></div><button id="start-surah-facts-test">Начать тест</button></div>
         </div>
       </div>
       <div id="ayah-test" hidden>
@@ -172,7 +177,7 @@
       <span class="juz-pill">7 дней</span>
     </header>
     <section class="daily-hero" id="daily-start">
-      <p class="eyebrow">Ежедневное закрепление · до Аль-Кариа</p>
+      <p class="eyebrow">Ежедневное закрепление · до Аль-Адият</p>
       <h1>Немного каждый день.<br><em>Всё запомнится.</em></h1>
       <p>Слова, перевод аятов и номер суры с количеством аятов — в коротких смешанных тестах.</p>
     </section>
@@ -194,7 +199,7 @@
       </div>
       <div id="daily-result" hidden></div>
     </section>
-    <footer class="ayah-source">Материал: слова из уроков 1–7 и перевод смыслов «Калям Шариф» для сур 114–101.</footer>
+    <footer class="ayah-source">Материал: слова из уроков 1–7 и перевод смыслов «Калям Шариф» для сур 114–100.</footer>
   </main>
 
   <main class="continue-shell" id="continue-app" hidden>
@@ -204,7 +209,7 @@
       <span class="juz-pill">На слух</span>
     </header>
     <section class="continue-hero" id="continue-start">
-      <p class="eyebrow">Повторение на слух · суры 114–101</p>
+      <p class="eyebrow">Повторение на слух · суры 114–100</p>
       <h1>Я называю суру или читаю аят.<br><em>Ты начинаешь или продолжаешь.</em></h1>
       <p>Для первого аята приложение называет суру. Для остальных читает предыдущий аят — затем проверяет твой ответ по словам.</p>
     </section>
@@ -218,9 +223,9 @@
           <label><input type="checkbox" id="continue-auto-speak" checked> Произносить аят автоматически</label>
           <span>Разреши микрофон при начале занятия. Он останется готовым между аятами и выключится при выходе. После короткого сигнала начинай читать.</span>
         </div>
-        <p class="continue-compatibility">Все аяты перемешиваются между всеми сурами: подряд одна сура не идёт. Аудио Аймана Сувайда хранится в сайте и работает без интернета. Во время ответа скажи «повтори аят», «подожди» или «продолжай» — запись повторится, отсчёт остановится или возобновится. Для проверки голосом открой сайт через localhost или HTTPS и разреши доступ к микрофону. Само распознавание речи может зависеть от поддержки браузера.</p>
+        <p class="continue-compatibility">Каждый новый тест включает все 90 пройденных аятов и перемешивает их между всеми сурами: подряд одна сура не идёт, а задания внутри теста не повторяются. Аудио Аймана Сувайда хранится в сайте и работает без интернета. Во время ответа скажи «повтори аят», «подожди» или «продолжай» — запись повторится, отсчёт остановится или возобновится. Для проверки голосом открой сайт через localhost или HTTPS и разреши доступ к микрофону. Само распознавание речи может зависеть от поддержки браузера.</p>
         <p class="continue-origin-notice" id="continue-origin-notice" hidden>Сейчас открыт отдельный файл. Чтобы Chrome запомнил разрешение для сайта, открой <a href="http://localhost:4174/">локальную версию на этом Mac</a> или <a href="https://yusyfyunus.github.io/arabic-words-game/">публичную версию</a>. Разреши микрофон <strong>«при каждом посещении»</strong>, а не «только сейчас». Для локальной ссылки сервер должен быть запущен.</p>
-        <div class="continue-start-row"><strong>79 аятов · все суры 114–101</strong><button id="start-continue-test">Начать занятие →</button></div>
+        <div class="continue-start-row"><strong>90 аятов · все суры 114–100</strong><button id="start-continue-test">Начать занятие →</button></div>
         <p class="continue-permission-status" id="continue-permission-status">При первом запуске выбери в Chrome «Разрешать при каждом посещении» — тогда повторять разрешение для каждого аята не нужно.</p>
       </div>
       <div id="continue-test" hidden>
@@ -233,17 +238,17 @@
       </div>
       <div id="continue-result" hidden></div>
     </section>
-    <footer class="ayah-source">Материал: все 79 аятов сур 114–101. Первый аят проверяется по команде «Начни суру», остальные — как продолжение. Чтение аятов: Айман Сувайд.</footer>
+    <footer class="ayah-source">Материал: все 90 аятов сур 114–100. Первый аят проверяется по команде «Начни суру», остальные — как продолжение. Чтение аятов: Айман Сувайд.</footer>
   </main>
 
   <main class="listen-shell" id="listen-app" hidden>
     <header class="topbar listen-topbar">
       <button class="back-project" data-open-project="home">← Разделы</button>
       <a class="brand" href="#listen-start"><span class="brand-mark listen-mark">س</span><span>Скажи перевод</span></a>
-      <span class="juz-pill">79 аятов</span>
+      <span class="juz-pill">90 аятов</span>
     </header>
     <section class="listen-hero" id="listen-start">
-      <p class="eyebrow">Слушаем и переводим · суры 114–101</p>
+      <p class="eyebrow">Слушаем и переводим · суры 114–100</p>
       <h1>Слушай аят.<br><em>Скажи его перевод.</em></h1>
       <p>Айман Сувайд читает по-арабски, затем микрофон слушает твой перевод и проверяет его по смысловым словам.</p>
     </section>
@@ -254,11 +259,11 @@
           <p>Можно отвечать по порядку или перемешать все аяты между сурами. На каждый ответ даётся одна минута.</p>
         </div>
         <div class="listen-settings">
-          <label><input type="radio" name="listen-order" value="ordered" checked> По порядку: от «Ан-Нас» до «Аль-Кариа»</label>
+          <label><input type="radio" name="listen-order" value="ordered" checked> По порядку: от «Ан-Нас» до «Аль-Адият»</label>
           <label><input type="radio" name="listen-order" value="random"> Вразброс: аяты из разных сур</label>
           <label><input type="checkbox" id="listen-auto-next" checked> Автоматически переходить к следующему аяту</label>
         </div>
-        <div class="listen-start-row"><strong>79 аятов · 14 сур</strong><button id="start-listen-session">Начать проверку →</button></div>
+        <div class="listen-start-row"><strong>90 аятов · 15 сур</strong><button id="start-listen-session">Начать проверку →</button></div>
       </div>
       <div id="listen-player" hidden>
         <div class="listen-player-head">
@@ -283,22 +288,48 @@
       </div>
       <div id="listen-result" hidden></div>
     </section>
-    <footer class="ayah-source">Все 79 аятов сур 114–101. Арабское чтение: Айман Сувайд. Ответ ученицы проверяется по переводу смыслов «Калям Шариф», ДУМ Республики Татарстан.</footer>
+    <footer class="ayah-source">Все 90 аятов сур 114–100. Арабское чтение: Айман Сувайд. Ответ ученицы проверяется по переводу смыслов «Калям Шариф», ДУМ Республики Татарстан.</footer>
   </main>
 
+  <main class="tafsir-shell" id="tafsir-app" hidden>
+    <header class="topbar tafsir-topbar">
+      <button class="back-project" data-open-project="home">← Разделы</button>
+      <a class="brand" href="#tafsir-start"><span class="brand-mark tafsir-mark">ت</span><span>Закрепляем тафсир</span></a>
+      <span class="juz-pill">15 сур</span>
+    </header>
+    <section class="tafsir-hero" id="tafsir-start">
+      <p class="eyebrow">Краткий смысл · проверка понимания</p>
+      <h1>Не только прочитать.<br><em>Понять и запомнить.</em></h1>
+      <p>Изучи краткое объяснение каждого аята, затем проверь себя в двух направлениях.</p>
+    </section>
+    <section class="tafsir-card">
+      <div id="tafsir-setup">
+        <div class="tafsir-setup-heading">
+          <div><p class="eyebrow">Пробный раздел</p><h2>Выбери суру</h2></div>
+          <p>Пятнадцать коротких сур: история ниспослания, степень достоверности, главные аяты и скрытые варианты в тесте.</p>
+        </div>
+        <div class="tafsir-surah-grid" id="tafsir-surah-grid"></div>
+      </div>
+      <div id="tafsir-study" hidden></div>
+      <div id="tafsir-test" hidden></div>
+      <div id="tafsir-result" hidden></div>
+    </section>
+    <footer class="ayah-source">Краткие объяснения составлены по материалам <a href="https://azan.ru/tafsir" target="_blank" rel="noopener">тафсира Azan.ru</a>. Для подробного изучения переходи к полному тексту источника.</footer>
+  </main>
   <script src="juz30-data.js"></script>
-  <script src="game.js?v=20260917-32"></script>
-  <script src="ayah-game.js?v=20260914-27"></script>
-  <script src="daily-game.js?v=20260917-32"></script>
-  <script src="continue-game.js?v=20260919-40"></script>
-  <script src="listen-game.js?v=20260919-40"></script>
+  <script src="game.js?v=20260917-33"></script>
+  <script src="ayah-game.js?v=20260923-42"></script>
+  <script src="daily-game.js?v=20260923-42"></script>
+  <script src="continue-game.js?v=20260923-42"></script>
+  <script src="listen-game.js?v=20260923-42"></script>
+  <script src="tafsir-game.js?v=20260923-42"></script>
   <script>
     if ("serviceWorker" in navigator && location.protocol === "https:") {
       let reloadingForUpdate = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20260919-40")) return;
+        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20260923-42")) return;
         reloadingForUpdate = true;
-        sessionStorage.setItem("kalimat-sw-20260919-40", "1");
+        sessionStorage.setItem("kalimat-sw-20260923-42", "1");
         location.reload();
       });
       navigator.serviceWorker.register("./sw.js")

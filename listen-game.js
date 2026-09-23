@@ -1,6 +1,6 @@
 // «Скажи перевод»: Айман Сувайд читает аят, затем ученица произносит перевод.
 const LISTEN_SURAHS = JUZ30_SURAHS
-  .filter((surah) => surah.number >= 101 && surah.number <= 114)
+  .filter((surah) => surah.number >= 100 && surah.number <= 114)
   .sort((a, b) => b.number - a.number);
 
 const LISTEN_ITEMS = LISTEN_SURAHS.flatMap((surah) => surah.ayahs.map((ayah) => ({

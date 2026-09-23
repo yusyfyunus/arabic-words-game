@@ -60,7 +60,7 @@ const allAyahs = JUZ30_SURAHS.flatMap((surah) => surah.ayahs.map((ayah) => {
 }));
 
 const SURAH_FACT_SURAHS = JUZ30_SURAHS
-  .filter((surah) => surah.number >= 101 && surah.number <= 114)
+  .filter((surah) => surah.number >= 100 && surah.number <= 114)
   .sort((a, b) => b.number - a.number);
 
 const ayahElement = (id) => document.getElementById(id);
