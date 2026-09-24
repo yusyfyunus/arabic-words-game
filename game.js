@@ -79,6 +79,16 @@ const LESSONS = [{
   ["نَارٌ", "Огонь"], ["حَامِي", "Пылающий, разогретый, горячий"], ["فَرَاشٌ", "Мотылек"],
   ["عِهْنٌ", "Шерсть"], ["نَفَشَ", "Расчесывать"]
   ].map(([arabic, russian]) => ({ arabic, russian }))
+}, {
+  id: "lesson-8",
+  title: "Урок 8 · Аль-Адият",
+  words: [
+  ["ضَبْحًا", "Тяжело дышащие"], ["ٱلْمُورِيَـٰتِ", "Высекающие искры"],
+  ["صُبْحًا", "На заре"], ["نَقْعًا", "Пыль"], ["جَمْعًا", "Толпа"],
+  ["لَكَنُودٌ", "Неблагодарен"], ["لَشَهِيدٌ", "Свидетель"],
+  ["ٱلْخَيْرِ", "Земные блага"], ["ٱلْقُبُورِ", "Могилы"],
+  ["ٱلصُّدُورِ", "Души людей"], ["لَّخَبِيرٌۢ", "Знающий обо всём"]
+  ].map(([arabic, russian]) => ({ arabic, russian }))
 }];
 
 const WORDS = LESSONS.flatMap((lesson) => lesson.words);
@@ -462,6 +472,7 @@ function reset(nextMode = mode, nextScope = scope) {
   $("scope-lesson5").classList.toggle("active", scope === "lesson-5");
   $("scope-lesson6").classList.toggle("active", scope === "lesson-6");
   $("scope-lesson7").classList.toggle("active", scope === "lesson-7");
+  $("scope-lesson8").classList.toggle("active", scope === "lesson-8");
   $("scope-all").classList.toggle("active", scope === "all");
   $("scope-hard").classList.toggle("active", scope === "hard");
   $("mode-translate").parentElement.hidden = scope === "hard";
@@ -487,6 +498,7 @@ $("scope-lesson4").addEventListener("click", () => scope !== "lesson-4" && reset
 $("scope-lesson5").addEventListener("click", () => scope !== "lesson-5" && reset(mode, "lesson-5"));
 $("scope-lesson6").addEventListener("click", () => scope !== "lesson-6" && reset(mode, "lesson-6"));
 $("scope-lesson7").addEventListener("click", () => scope !== "lesson-7" && reset(mode, "lesson-7"));
+$("scope-lesson8").addEventListener("click", () => scope !== "lesson-8" && reset(mode, "lesson-8"));
 $("scope-all").addEventListener("click", () => scope !== "all" && reset(mode, "all"));
 $("scope-hard").addEventListener("click", () => scope !== "hard" && reset(mode, "hard"));
 $("restart").addEventListener("click", () => reset());
