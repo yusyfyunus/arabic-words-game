@@ -89,6 +89,15 @@ const LESSONS = [{
   ["ٱلْخَيْرِ", "Земные блага"], ["ٱلْقُبُورِ", "Могилы"],
   ["ٱلصُّدُورِ", "Души людей"], ["لَّخَبِيرٌۢ", "Знающий обо всём"]
   ].map(([arabic, russian]) => ({ arabic, russian }))
+}, {
+  id: "lesson-9",
+  title: "Урок 9 · Аз-Зильзаля",
+  words: [
+  ["زِلْزَالَهَا", "Её сотрясение"], ["أَثْقَالَهَا", "Свои тяжести"],
+  ["مَا لَهَا", "Что с ней?"], ["أَخْبَارَهَا", "Свои истории"],
+  ["أَوْحَىٰ", "Внушит"], ["أَشْتَاتًا", "Группами"],
+  ["خَيْرًا", "Добро"], ["شَرًّا", "Зло"]
+  ].map(([arabic, russian]) => ({ arabic, russian }))
 }];
 
 const WORDS = LESSONS.flatMap((lesson) => lesson.words);
@@ -473,6 +482,7 @@ function reset(nextMode = mode, nextScope = scope) {
   $("scope-lesson6").classList.toggle("active", scope === "lesson-6");
   $("scope-lesson7").classList.toggle("active", scope === "lesson-7");
   $("scope-lesson8").classList.toggle("active", scope === "lesson-8");
+  $("scope-lesson9").classList.toggle("active", scope === "lesson-9");
   $("scope-all").classList.toggle("active", scope === "all");
   $("scope-hard").classList.toggle("active", scope === "hard");
   $("mode-translate").parentElement.hidden = scope === "hard";
@@ -499,6 +509,7 @@ $("scope-lesson5").addEventListener("click", () => scope !== "lesson-5" && reset
 $("scope-lesson6").addEventListener("click", () => scope !== "lesson-6" && reset(mode, "lesson-6"));
 $("scope-lesson7").addEventListener("click", () => scope !== "lesson-7" && reset(mode, "lesson-7"));
 $("scope-lesson8").addEventListener("click", () => scope !== "lesson-8" && reset(mode, "lesson-8"));
+$("scope-lesson9").addEventListener("click", () => scope !== "lesson-9" && reset(mode, "lesson-9"));
 $("scope-all").addEventListener("click", () => scope !== "all" && reset(mode, "all"));
 $("scope-hard").addEventListener("click", () => scope !== "hard" && reset(mode, "hard"));
 $("restart").addEventListener("click", () => reset());
