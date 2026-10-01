@@ -46,7 +46,7 @@
       <button class="project-choice tafsir-choice" data-open-project="tafsir">
         <span class="project-number">04</span><span class="project-arabic" lang="ar" dir="rtl">تَفْسِيرٌ</span>
         <small>Понимаем смысл глубже</small><strong>Закрепляем тафсир</strong>
-        <p>15 коротких сур с историей ниспослания и проверкой источников.</p><i>Изучить пятнадцать сур →</i>
+        <p>16 коротких сур с историей ниспослания и проверкой источников.</p><i>Изучить шестнадцать сур →</i>
       </button>
       <button class="project-choice daily-choice" data-open-project="daily">
         <span class="project-number">05</span><span class="project-arabic" lang="ar" dir="rtl">مُرَاجَعَةٌ</span>
@@ -297,7 +297,7 @@
     <header class="topbar tafsir-topbar">
       <button class="back-project" data-open-project="home">← Разделы</button>
       <a class="brand" href="#tafsir-start"><span class="brand-mark tafsir-mark">ت</span><span>Закрепляем тафсир</span></a>
-      <span class="juz-pill">15 сур</span>
+      <span class="juz-pill">16 сур</span>
     </header>
     <section class="tafsir-hero" id="tafsir-start">
       <p class="eyebrow">Краткий смысл · проверка понимания</p>
@@ -308,7 +308,7 @@
       <div id="tafsir-setup">
         <div class="tafsir-setup-heading">
           <div><p class="eyebrow">Пробный раздел</p><h2>Выбери суру</h2></div>
-          <p>Пятнадцать коротких сур: история ниспослания, степень достоверности, главные аяты и скрытые варианты в тесте.</p>
+          <p>Шестнадцать коротких сур: история ниспослания, степень достоверности, главные аяты и скрытые варианты в тесте.</p>
         </div>
         <div class="tafsir-surah-grid" id="tafsir-surah-grid"></div>
       </div>
@@ -319,19 +319,19 @@
     <footer class="ayah-source">Краткие объяснения составлены по материалам <a href="https://azan.ru/tafsir" target="_blank" rel="noopener">тафсира Azan.ru</a>. Для подробного изучения переходи к полному тексту источника.</footer>
   </main>
   <script src="juz30-data.js"></script>
-  <script src="game.js?v=20260929-44"></script>
-  <script src="ayah-game.js?v=20260929-44"></script>
-  <script src="daily-game.js?v=20260929-44"></script>
-  <script src="continue-game.js?v=20260929-44"></script>
-  <script src="listen-game.js?v=20260929-44"></script>
-  <script src="tafsir-game.js?v=20260923-42"></script>
+  <script src="game.js?v=20261001-46"></script>
+  <script src="ayah-game.js?v=20261001-46"></script>
+  <script src="daily-game.js?v=20261001-46"></script>
+  <script src="continue-game.js?v=20261001-46"></script>
+  <script src="listen-game.js?v=20261001-46"></script>
+  <script src="tafsir-game.js?v=20261001-46"></script>
   <script>
     if ("serviceWorker" in navigator && location.protocol === "https:") {
       let reloadingForUpdate = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20260929-44")) return;
+        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20261001-46")) return;
         reloadingForUpdate = true;
-        sessionStorage.setItem("kalimat-sw-20260929-44", "1");
+        sessionStorage.setItem("kalimat-sw-20261001-46", "1");
         location.reload();
       });
       navigator.serviceWorker.register("./sw.js")
