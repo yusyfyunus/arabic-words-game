@@ -12,9 +12,18 @@ const LISTEN_ITEMS = LISTEN_SURAHS.flatMap((surah) => surah.ayahs.map((ayah) => 
 const LISTEN_STOP_WORDS = new Set(["а", "и", "в", "во", "на", "не", "ни", "но", "же", "ли", "бы", "к", "ко", "с", "со", "у", "о", "об", "от", "до", "для", "по", "из", "за", "над", "под", "при", "это", "тот", "та", "те", "его", "ее", "их"]);
 const listenState = {
   deck: [], index: 0, score: 0, errors: [], running: false, paused: false,
-  stage: "idle", audio: null, utterance: null, recognition: null,
-  spokenParts: [], timer: null, gradeTimer: null, deadlineTimer: null, token: 0
+  stage: "idle", audio: null, audioPlayer: null, audioContext: null,
+  audioSource: null, audioBuffers: new Map(), audioToken: 0,
+  utterance: null, recognition: null,
+  recognitionActive: false, recognitionGeneration: 0, recognitionRestartTimer: null,
+  recognitionWatchdogTimer: null, recognitionRecoveryCount: 0,
+  microphoneStream: null, microphonePermissionPromise: null,
+  microphonePermission: "unknown", microphonePrimed: false, microphoneRequestGeneration: 0,
+  spokenParts: [], currentTranscript: "", listenUntil: 0,
+  gradedItems: new Set(),
+  timer: null, gradeTimer: null, deadlineTimer: null, token: 0
 };
+const LISTEN_SILENCE_MS = 5000;
 const listenEl = (id) => document.getElementById(id);
 const listenEscape = (value) => String(value)
   .replaceAll("&", "&amp;")
@@ -34,6 +43,132 @@ function shuffleListenItems(items) {
 
 function listenAudioUrl(item) {
   return `audio/ayman-suwaid/${String(item.surahNumber).padStart(3, "0")}${String(item.number).padStart(3, "0")}.mp3`;
+}
+
+function listenItemId(item) {
+  return `${item.surahNumber}:${item.number}`;
+}
+
+function setListenAudioSession(type) {
+  try {
+    if (navigator.audioSession && "type" in navigator.audioSession) navigator.audioSession.type = type;
+  } catch (error) { /* Audio Session API поддерживается не во всех версиях Safari */ }
+}
+
+function ensureListenAudioContext() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  if (!listenState.audioContext) listenState.audioContext = new AudioContextClass();
+  if (listenState.audioContext.state === "suspended") {
+    listenState.audioContext.resume().catch(() => {});
+  }
+  return listenState.audioContext;
+}
+
+function unlockListenAudio() {
+  const context = ensureListenAudioContext();
+  if (!context) return;
+  try {
+    const source = context.createBufferSource();
+    source.buffer = context.createBuffer(1, 1, context.sampleRate || 44100);
+    source.connect(context.destination);
+    source.start(0);
+  } catch (error) { /* Safari уже разрешил звук или не требует разблокировки */ }
+}
+
+function stopListenAudio() {
+  listenState.audioToken += 1;
+  if (listenState.audioSource) {
+    listenState.audioSource.onended = null;
+    try { listenState.audioSource.stop(0); } catch (error) { /* источник уже остановлен */ }
+    try { listenState.audioSource.disconnect(); } catch (error) { /* источник уже отключён */ }
+    listenState.audioSource = null;
+  }
+  if (listenState.audio) {
+    listenState.audio.onended = null;
+    listenState.audio.onerror = null;
+    try { listenState.audio.pause(); } catch (error) { /* запись уже закончилась */ }
+    try { listenState.audio.currentTime = 0; } catch (error) { /* файл ещё не загрузился */ }
+    listenState.audio = null;
+  }
+}
+
+function loadListenAudioBuffer(url) {
+  const context = ensureListenAudioContext();
+  if (!context) return Promise.reject(new Error("Web Audio API unavailable"));
+  if (!listenState.audioBuffers.has(url)) {
+    const bufferPromise = fetch(url)
+      .then((response) => {
+        if (!response.ok) throw new Error(`Audio ${response.status}`);
+        return response.arrayBuffer();
+      })
+      .then((bytes) => context.decodeAudioData(bytes))
+      .catch((error) => {
+        listenState.audioBuffers.delete(url);
+        throw error;
+      });
+    listenState.audioBuffers.set(url, bufferPromise);
+  }
+  return listenState.audioBuffers.get(url);
+}
+
+function playListenAudioElement(item, token, onEnd, onError) {
+  const audio = listenState.audioPlayer || new Audio();
+  listenState.audioPlayer = audio;
+  audio.src = listenAudioUrl(item);
+  audio.preload = "auto";
+  audio.playsInline = true;
+  listenState.audio = audio;
+  let failed = false;
+  const fail = () => {
+    if (failed || token !== listenState.audioToken) return;
+    failed = true;
+    if (listenState.audio === audio) listenState.audio = null;
+    onError?.();
+  };
+  audio.onended = () => {
+    if (token !== listenState.audioToken) return;
+    if (listenState.audio === audio) listenState.audio = null;
+    onEnd?.();
+  };
+  audio.onerror = fail;
+  const playPromise = audio.play();
+  if (playPromise?.catch) playPromise.catch(fail);
+}
+
+function playListenAyah(item, onEnd, onError) {
+  stopListenAudio();
+  setListenAudioSession("playback");
+  const token = listenState.audioToken;
+  const context = ensureListenAudioContext();
+  if (!context) return playListenAudioElement(item, token, onEnd, onError);
+  const url = listenAudioUrl(item);
+  let failed = false;
+  const fail = () => {
+    if (failed || token !== listenState.audioToken) return;
+    failed = true;
+    // На iPhone media-элемент после воспроизведения может заблокировать
+    // последующий SpeechRecognition. Поэтому там не используем такой fallback.
+    if (isListenIOS()) onError?.();
+    else playListenAudioElement(item, token, onEnd, onError);
+  };
+  loadListenAudioBuffer(url)
+    .then((buffer) => context.resume().then(() => buffer))
+    .then((buffer) => {
+      if (token !== listenState.audioToken) return;
+      const source = context.createBufferSource();
+      source.buffer = buffer;
+      source.connect(context.destination);
+      listenState.audioSource = source;
+      source.onended = () => {
+        if (token !== listenState.audioToken) return;
+        if (listenState.audioSource === source) listenState.audioSource = null;
+        try { source.disconnect(); } catch (error) { /* уже отключён */ }
+        onEnd?.();
+      };
+      source.start(0);
+    })
+    .catch(fail);
 }
 
 function normalizeListenWords(text) {
@@ -56,6 +191,15 @@ function listenTranslationScore(spoken, expected) {
   return matched / target.length;
 }
 
+function listenTranslationAccepted(spoken, expected) {
+  const target = normalizeListenWords(expected);
+  const score = listenTranslationScore(spoken, expected);
+  // В коротком переводе нельзя принимать одно угаданное слово из двух.
+  // В длинном допускаем небольшую погрешность распознавания Safari.
+  if (target.length <= 3) return score >= 0.99;
+  return score >= 0.7;
+}
+
 function listenMissingWords(spoken, expected) {
   const heard = normalizeListenWords(spoken);
   const missing = normalizeListenWords(expected)
@@ -74,18 +218,88 @@ function listenHighlightedTranslation(expected, missingWords = []) {
   }).join("");
 }
 
+function isListenIOS() {
+  const userAgent = navigator.userAgent || "";
+  return /iPad|iPhone|iPod/.test(userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+function prepareListenMicrophone() {
+  if (isListenIOS() && listenState.microphonePrimed && listenState.microphonePermission === "granted") {
+    return Promise.resolve(true);
+  }
+  if (listenState.microphoneStream?.getAudioTracks().some((track) => track.readyState === "live")) {
+    return Promise.resolve(true);
+  }
+  if (listenState.microphonePermissionPromise) return listenState.microphonePermissionPromise;
+  const status = listenEl("listen-permission-status");
+  if (!navigator.mediaDevices?.getUserMedia) {
+    listenState.microphonePermission = "unsupported";
+    if (status) status.textContent = "Safari не предоставил доступ к микрофону. Открой публичный сайт через HTTPS и проверь настройки сайта.";
+    return Promise.resolve(false);
+  }
+  if (status) status.textContent = "Разреши микрофон один раз — он останется готовым до конца занятия.";
+  const requestGeneration = listenState.microphoneRequestGeneration;
+  listenState.microphonePermissionPromise = navigator.mediaDevices.getUserMedia({ audio: true })
+    .then((stream) => {
+      if (requestGeneration !== listenState.microphoneRequestGeneration) {
+        stream.getTracks().forEach((track) => track.stop());
+        return false;
+      }
+      listenState.microphonePermission = "granted";
+      listenState.microphonePrimed = true;
+      if (isListenIOS()) {
+        // На iPhone постоянно открытый getUserMedia-поток мешает аудио и
+        // встроенному SpeechRecognition. Разрешение уже получено, поэтому
+        // освобождаем вход и дальше используем распознавание Safari.
+        stream.getTracks().forEach((track) => track.stop());
+        listenState.microphoneStream = null;
+      } else listenState.microphoneStream = stream;
+      if (status) status.textContent = "Микрофон готов. Повторное разрешение между аятами не потребуется.";
+      return true;
+    })
+    .catch(() => {
+      if (requestGeneration !== listenState.microphoneRequestGeneration) return false;
+      listenState.microphonePermission = "denied";
+      listenState.microphonePrimed = false;
+      if (status) status.textContent = "Микрофон запрещён. В Safari открой «аА» → «Настройки веб-сайта» → «Микрофон» → «Разрешить».";
+      return false;
+    })
+    .finally(() => {
+      if (requestGeneration === listenState.microphoneRequestGeneration) {
+        listenState.microphonePermissionPromise = null;
+      }
+    });
+  return listenState.microphonePermissionPromise;
+}
+
+function releaseListenMicrophone() {
+  listenState.microphoneRequestGeneration += 1;
+  listenState.microphoneStream?.getTracks().forEach((track) => track.stop());
+  listenState.microphoneStream = null;
+  listenState.microphonePermissionPromise = null;
+  listenState.microphonePrimed = false;
+}
+
 function stopListenRecognition() {
   clearTimeout(listenState.gradeTimer);
   clearTimeout(listenState.deadlineTimer);
+  clearTimeout(listenState.recognitionRestartTimer);
+  clearTimeout(listenState.recognitionWatchdogTimer);
   listenState.gradeTimer = null;
   listenState.deadlineTimer = null;
-  if (listenState.recognition) {
-    listenState.recognition.onend = null;
-    listenState.recognition.onerror = null;
-    listenState.recognition.onresult = null;
-    try { listenState.recognition.abort(); } catch (error) { /* уже остановлен */ }
-    listenState.recognition = null;
-  }
+  listenState.recognitionRestartTimer = null;
+  listenState.recognitionWatchdogTimer = null;
+  listenState.recognitionGeneration += 1;
+  const recognition = listenState.recognition;
+  listenState.recognition = null;
+  listenState.recognitionActive = false;
+  if (!recognition) return;
+  recognition.onstart = null;
+  recognition.onend = null;
+  recognition.onerror = null;
+  recognition.onresult = null;
+  try { recognition.abort(); } catch (error) { /* уже остановлен */ }
 }
 
 function stopListenPlayback() {
@@ -93,12 +307,7 @@ function stopListenPlayback() {
   clearTimeout(listenState.timer);
   listenState.timer = null;
   stopListenRecognition();
-  if (listenState.audio) {
-    listenState.audio.onended = null;
-    listenState.audio.onerror = null;
-    listenState.audio.pause();
-    listenState.audio = null;
-  }
+  stopListenAudio();
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
   listenState.utterance = null;
 }
@@ -136,20 +345,28 @@ function finishListenAnswer(correct, transcript = "") {
   if (listenState.stage === "feedback") return;
   const item = listenState.deck[listenState.index];
   if (!item) return;
+  const answerToken = listenState.token;
+  const answerIndex = listenState.index;
   stopListenRecognition();
   listenState.stage = "feedback";
   listenEl("listen-translation").textContent = item.russian;
   listenEl("listen-heard").textContent = transcript ? `Услышано: ${transcript}` : "";
-  if (correct) listenState.score += 1;
-  else listenState.errors.push({
-    ...item,
-    heard: transcript || "Ответ не распознан",
-    missing: listenMissingWords(transcript, item.russian)
-  });
+  const itemId = listenItemId(item);
+  if (!listenState.gradedItems.has(itemId)) {
+    listenState.gradedItems.add(itemId);
+    if (correct) listenState.score += 1;
+    else listenState.errors.push({
+      ...item,
+      heard: transcript || "Ответ не распознан",
+      missing: listenMissingWords(transcript, item.russian)
+    });
+  }
   updateListenProgress();
 
   const moveOn = () => {
-    if (!listenState.running || listenState.paused) return;
+    if (!listenState.running || listenState.paused
+      || answerToken !== listenState.token || answerIndex !== listenState.index
+      || listenState.stage !== "feedback") return;
     if (listenEl("listen-auto-next").checked) listenState.timer = setTimeout(() => moveListen(1), 1100);
     else setListenStatus(correct ? "Ма ша Аллах" : "Правильный перевод", "Нажми «Вперёд», когда будешь готова.");
   };
@@ -167,52 +384,119 @@ function startListenRecognition(token) {
   if (token !== listenState.token || listenState.paused || listenState.stage !== "answer") return;
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!Recognition) {
-    setListenStatus("Микрофонное распознавание недоступно", "Открой сайт в Safari или Chrome через HTTPS. Можно нажать «Не помню — ответ».");
+    setListenStatus("Распознавание речи недоступно", "Открой публичный сайт через HTTPS в Safari и включи Siri и диктовку. Можно нажать «Не помню — ответ».");
     return;
   }
+  const generation = listenState.recognitionGeneration;
+  setListenAudioSession("play-and-record");
   const recognition = new Recognition();
   listenState.recognition = recognition;
   recognition.lang = "ru-RU";
   recognition.interimResults = true;
-  recognition.continuous = true;
+  // На iPhone continuous=true часто зависает после первого короткого ответа.
+  // Safari работает короткими сеансами, которые автоматически перезапускаются.
+  recognition.continuous = !isListenIOS();
+  recognition.maxAlternatives = 3;
+  let bestTranscript = "";
+  let receivedResult = false;
+  let lastError = "";
+  recognition.onstart = () => {
+    if (token !== listenState.token || generation !== listenState.recognitionGeneration) return;
+    listenState.recognitionActive = true;
+    setListenStatus("Твой перевод", "Микрофон слушает. Произнеси перевод по-русски — у тебя 1 минута.");
+    clearTimeout(listenState.recognitionWatchdogTimer);
+    listenState.recognitionWatchdogTimer = setTimeout(() => {
+      if (receivedResult || token !== listenState.token || listenState.stage !== "answer") return;
+      listenState.recognitionRecoveryCount += 1;
+      setListenStatus("Слушаю ещё раз", "Safari пока не передал текст. Не нажимай ничего — произнеси перевод ещё раз.");
+      recognition.onend = null;
+      recognition.onerror = null;
+      recognition.onresult = null;
+      try { recognition.abort(); } catch (error) { /* уже остановлен */ }
+      if (listenState.recognition === recognition) listenState.recognition = null;
+      listenState.recognitionActive = false;
+      listenState.recognitionRestartTimer = setTimeout(() => startListenRecognition(token), isListenIOS() ? 1200 : 500);
+    }, 15000);
+  };
   recognition.onresult = (event) => {
-    if (token !== listenState.token || listenState.stage !== "answer") return;
-    let interim = "";
-    for (let index = event.resultIndex; index < event.results.length; index += 1) {
-      const phrase = event.results[index][0].transcript.trim();
-      if (event.results[index].isFinal) listenState.spokenParts.push(phrase);
-      else interim += ` ${phrase}`;
+    if (token !== listenState.token || generation !== listenState.recognitionGeneration || listenState.stage !== "answer") return;
+    const heardParts = [];
+    for (let index = 0; index < event.results.length; index += 1) {
+      const phrase = event.results[index]?.[0]?.transcript?.trim();
+      if (phrase) heardParts.push(phrase);
     }
-    const transcript = [...listenState.spokenParts, interim.trim()].filter(Boolean).join(" ").trim();
+    const currentPart = heardParts.join(" ").trim();
+    if (!currentPart) return;
+    receivedResult = true;
+    listenState.recognitionRecoveryCount = 0;
+    bestTranscript = currentPart;
+    listenState.currentTranscript = currentPart;
+    const transcript = [...listenState.spokenParts, currentPart].filter(Boolean).join(" ").trim();
     listenEl("listen-heard").textContent = transcript ? `Слышу: ${transcript}` : "Слушаю перевод…";
-    const score = listenTranslationScore(transcript, listenState.deck[listenState.index].russian);
-    if (score >= 0.5) {
+    if (listenTranslationAccepted(transcript, listenState.deck[listenState.index].russian)) {
       finishListenAnswer(true, transcript);
       return;
     }
     clearTimeout(listenState.gradeTimer);
-    if (listenState.spokenParts.length) {
-      listenState.gradeTimer = setTimeout(() => finishListenAnswer(false, transcript), 2600);
-    }
+    listenState.gradeTimer = setTimeout(() => {
+      const completeTranscript = [...listenState.spokenParts, listenState.currentTranscript]
+        .filter(Boolean).join(" ").trim();
+      finishListenAnswer(false, completeTranscript || transcript);
+    }, LISTEN_SILENCE_MS);
   };
   recognition.onerror = (event) => {
-    if (token !== listenState.token || listenState.stage !== "answer") return;
+    if (token !== listenState.token || generation !== listenState.recognitionGeneration || listenState.stage !== "answer") return;
+    lastError = event.error || "unknown";
+    listenState.recognitionActive = false;
+    clearTimeout(listenState.recognitionWatchdogTimer);
+    listenState.recognitionWatchdogTimer = null;
     if (["not-allowed", "service-not-allowed"].includes(event.error)) {
       listenState.stage = "blocked";
-      setListenStatus("Нет доступа к микрофону", "Разреши микрофон для этого сайта в настройках Safari.");
+      clearTimeout(listenState.deadlineTimer);
+      listenState.deadlineTimer = null;
+      setListenStatus("Нет доступа к микрофону", "В Safari открой «аА» → «Настройки веб-сайта» → «Микрофон» → «Разрешить», затем начни занятие снова.");
       return;
     }
-    if (event.error !== "aborted") setListenStatus("Слушаю ещё раз", "Произнеси перевод целиком.");
+    if (event.error === "network") {
+      setListenStatus("Нужно соединение для распознавания", "На iPhone запись аята работает офлайн, но распознавание речи Safari может требовать интернет.");
+    } else if (event.error === "audio-capture") {
+      setListenStatus("Микрофон занят", "Закрой диктофон, звонок или другое приложение с микрофоном и попробуй снова.");
+    } else if (event.error !== "aborted") {
+      setListenStatus("Слушаю ещё раз", "Произнеси перевод целиком.");
+    }
   };
   recognition.onend = () => {
-    if (token !== listenState.token || listenState.paused || listenState.stage !== "answer" || listenState.gradeTimer) return;
-    listenState.timer = setTimeout(() => startListenRecognition(token), 350);
+    if (token !== listenState.token || generation !== listenState.recognitionGeneration) return;
+    listenState.recognitionActive = false;
+    clearTimeout(listenState.recognitionWatchdogTimer);
+    listenState.recognitionWatchdogTimer = null;
+    if (listenState.recognition === recognition) listenState.recognition = null;
+    if (bestTranscript) {
+      const previous = listenState.spokenParts.at(-1);
+      if (previous !== bestTranscript) listenState.spokenParts.push(bestTranscript);
+      listenState.currentTranscript = "";
+    }
+    // Даже если уже идёт отсчёт тишины, новый короткий сеанс Safari должен
+    // продолжить слушать. Следующий фрагмент сбросит таймер и дополнит ответ.
+    if (listenState.paused || listenState.stage !== "answer" || Date.now() >= listenState.listenUntil) return;
+    const retryDelay = lastError === "network" ? 1800 : isListenIOS() ? 700 : 350;
+    listenState.recognitionRestartTimer = setTimeout(() => startListenRecognition(token), retryDelay);
   };
   try {
-    recognition.start();
-    setListenStatus("Твой перевод", "Микрофон слушает. Произнеси перевод по-русски — у тебя 1 минута.");
+    const track = listenState.microphoneStream?.getAudioTracks()
+      .find((audioTrack) => audioTrack.readyState === "live");
+    if (track && !isListenIOS()) {
+      try { recognition.start(track); }
+      catch (error) {
+        if (error.name !== "TypeError" && error.name !== "NotSupportedError") throw error;
+        recognition.start();
+      }
+    } else recognition.start();
   } catch (error) {
-    listenState.timer = setTimeout(() => startListenRecognition(token), 500);
+    if (token !== listenState.token || generation !== listenState.recognitionGeneration) return;
+    listenState.recognition = null;
+    listenState.recognitionActive = false;
+    listenState.recognitionRestartTimer = setTimeout(() => startListenRecognition(token), isListenIOS() ? 1000 : 500);
   }
 }
 
@@ -220,10 +504,24 @@ function beginListenAnswer(item, token) {
   if (token !== listenState.token || listenState.paused) return;
   listenState.stage = "answer";
   listenState.spokenParts = [];
+  listenState.currentTranscript = "";
+  listenState.recognitionRecoveryCount = 0;
+  listenState.listenUntil = Date.now() + 60000;
   listenEl("listen-translation").textContent = "Теперь произнеси перевод этого аята по-русски.";
-  listenEl("listen-heard").textContent = "Слушаю перевод…";
-  startListenRecognition(token);
-  listenState.deadlineTimer = setTimeout(() => finishListenAnswer(false, listenState.spokenParts.join(" ")), 60000);
+  listenEl("listen-heard").textContent = isListenIOS() ? "Готовлю микрофон Safari…" : "Слушаю перевод…";
+  prepareListenMicrophone().then((granted) => {
+    if (token !== listenState.token || listenState.stage !== "answer") return;
+    if (!granted) {
+      listenState.stage = "blocked";
+      setListenStatus("Микрофон не включился", "Разреши микрофон для этого сайта и начни занятие снова.");
+      return;
+    }
+    startListenRecognition(token);
+    listenState.deadlineTimer = setTimeout(() => {
+      const transcript = [...listenState.spokenParts, listenState.currentTranscript].filter(Boolean).join(" ").trim();
+      finishListenAnswer(false, transcript);
+    }, 60000);
+  });
 }
 
 function playListenCurrent() {
@@ -241,20 +539,14 @@ function playListenCurrent() {
   listenEl("listen-pause").textContent = "⏸ Пауза";
   listenState.stage = "arabic";
   setListenStatus("Читает Айман Сувайд", "После аята микрофон автоматически включится для твоего перевода.");
-  const audio = new Audio(listenAudioUrl(item));
-  listenState.audio = audio;
-  audio.preload = "auto";
-  audio.onended = () => {
+  playListenAyah(item, () => {
     if (token !== listenState.token) return;
-    listenState.audio = null;
-    listenState.timer = setTimeout(() => beginListenAnswer(item, token), 450);
-  };
-  audio.onerror = () => {
+    setListenStatus("Аят закончен", isListenIOS() ? "Safari освобождает звук. Начинай отвечать, когда появится «Микрофон слушает»." : "Сейчас включится микрофон.");
+    listenState.timer = setTimeout(() => beginListenAnswer(item, token), isListenIOS() ? 3500 : 450);
+  }, () => {
     if (token !== listenState.token) return;
-    listenState.audio = null;
     setListenStatus("Запись аята недоступна", "Нажми «Повторить» или перейди к следующему аяту.");
-  };
-  audio.play().catch(() => setListenStatus("Нажми «Повторить»", "Safari ждёт касания, чтобы разрешить звук."));
+  });
 }
 
 function moveListen(step) {
@@ -271,8 +563,12 @@ function pauseListen() {
   if (!listenState.paused) {
     listenState.paused = true;
     clearTimeout(listenState.timer);
+    if (listenState.currentTranscript && listenState.spokenParts.at(-1) !== listenState.currentTranscript) {
+      listenState.spokenParts.push(listenState.currentTranscript);
+      listenState.currentTranscript = "";
+    }
     stopListenRecognition();
-    if (listenState.audio) listenState.audio.pause();
+    stopListenAudio();
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     listenEl("listen-pause").textContent = "▶ Продолжить";
     setListenStatus("Пауза", "Нажми «Продолжить», когда будешь готова.");
@@ -280,19 +576,25 @@ function pauseListen() {
   }
   listenState.paused = false;
   listenEl("listen-pause").textContent = "⏸ Пауза";
-  if (listenState.stage === "arabic" && listenState.audio) {
-    setListenStatus("Читает Айман Сувайд", "После аята микрофон автоматически включится.");
-    listenState.audio.play().catch(playListenCurrent);
+  if (listenState.stage === "arabic") {
+    // BufferSource нельзя продолжить с середины, поэтому после паузы
+    // безопасно начинаем текущий аят сначала.
+    playListenCurrent();
   } else if (listenState.stage === "answer") {
     setListenStatus("Твой перевод", "Микрофон снова слушает.");
     const token = listenState.token;
     startListenRecognition(token);
-    listenState.deadlineTimer = setTimeout(() => finishListenAnswer(false, listenState.spokenParts.join(" ")), 60000);
+    listenState.listenUntil = Date.now() + 60000;
+    listenState.deadlineTimer = setTimeout(() => {
+      const transcript = [...listenState.spokenParts, listenState.currentTranscript].filter(Boolean).join(" ").trim();
+      finishListenAnswer(false, transcript);
+    }, 60000);
   } else playListenCurrent();
 }
 
 function showListenResult() {
   stopListenPlayback();
+  releaseListenMicrophone();
   listenState.running = false;
   listenEl("listen-player").hidden = true;
   listenEl("listen-result").hidden = false;
@@ -327,13 +629,22 @@ function showListenResult() {
   });
 }
 
-function startListenSession() {
+async function startListenSession() {
+  // Выполняется до первого await, то есть внутри нажатия пользователя.
+  // Это один раз разблокирует Web Audio для всех аятов в Safari.
+  unlockListenAudio();
   stopListenPlayback();
+  const startButton = listenEl("start-listen-session");
+  if (startButton) startButton.disabled = true;
+  const granted = await prepareListenMicrophone();
+  if (startButton) startButton.disabled = false;
+  if (!granted) return;
   const randomOrder = document.querySelector('input[name="listen-order"]:checked')?.value === "random";
   listenState.deck = randomOrder ? shuffleListenItems(LISTEN_ITEMS) : [...LISTEN_ITEMS];
   listenState.index = 0;
   listenState.score = 0;
   listenState.errors = [];
+  listenState.gradedItems = new Set();
   listenEl("listen-setup").hidden = true;
   listenEl("listen-result").hidden = true;
   listenEl("listen-player").hidden = false;
@@ -342,6 +653,7 @@ function startListenSession() {
 
 function showListenSetup() {
   stopListenPlayback();
+  releaseListenMicrophone();
   listenState.running = false;
   listenEl("listen-player").hidden = true;
   listenEl("listen-result").hidden = true;
@@ -354,5 +666,22 @@ listenEl("listen-previous").addEventListener("click", () => moveListen(-1));
 listenEl("listen-next").addEventListener("click", () => moveListen(1));
 listenEl("listen-repeat").addEventListener("click", playListenCurrent);
 listenEl("listen-pause").addEventListener("click", pauseListen);
-listenEl("listen-reveal").addEventListener("click", () => finishListenAnswer(false, listenState.spokenParts.join(" ")));
+listenEl("listen-reveal").addEventListener("click", () => {
+  const transcript = [...listenState.spokenParts, listenState.currentTranscript].filter(Boolean).join(" ").trim();
+  finishListenAnswer(false, transcript);
+});
+if (location.protocol === "file:") listenEl("listen-origin-notice").hidden = false;
+document.addEventListener("click", (event) => {
+  const destination = event.target.closest?.("[data-open-project]")?.dataset.openProject;
+  if (destination && destination !== "listen") {
+    stopListenPlayback();
+    releaseListenMicrophone();
+    listenState.running = false;
+  }
+});
+window.addEventListener("pagehide", () => {
+  stopListenPlayback();
+  releaseListenMicrophone();
+  listenState.running = false;
+});
 window.showListenSetup = showListenSetup;

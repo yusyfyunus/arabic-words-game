@@ -13,7 +13,7 @@
   <meta property="og:url" content="https://yusyfyunus.github.io/arabic-words-game/">
   <meta property="og:image" content="https://yusyfyunus.github.io/arabic-words-game/og.png">
   <title>Арабский тренажёр</title>
-  <link rel="stylesheet" href="style.css?v=20260916-31">
+  <link rel="stylesheet" href="style.css?v=20261005-48">
 </head>
 <body>
   <main class="portal-shell" id="portal-home">
@@ -226,9 +226,9 @@
           <span>Разреши микрофон при начале занятия. Он останется готовым между аятами и выключится при выходе. После короткого сигнала начинай читать.</span>
         </div>
         <p class="continue-compatibility">Каждый новый тест включает все 98 пройденных аятов и перемешивает их между всеми сурами: подряд одна сура не идёт, а задания внутри теста не повторяются. Аудио Аймана Сувайда хранится в сайте и работает без интернета. Во время ответа скажи «повтори аят», «подожди» или «продолжай» — запись повторится, отсчёт остановится или возобновится. Для проверки голосом открой сайт через localhost или HTTPS и разреши доступ к микрофону. Само распознавание речи может зависеть от поддержки браузера.</p>
-        <p class="continue-origin-notice" id="continue-origin-notice" hidden>Сейчас открыт отдельный файл. Чтобы Chrome запомнил разрешение для сайта, открой <a href="http://localhost:4174/">локальную версию на этом Mac</a> или <a href="https://yusyfyunus.github.io/arabic-words-game/">публичную версию</a>. Разреши микрофон <strong>«при каждом посещении»</strong>, а не «только сейчас». Для локальной ссылки сервер должен быть запущен.</p>
+        <p class="continue-origin-notice" id="continue-origin-notice" hidden>Сейчас открыт отдельный файл. Для голосовой проверки на iPhone открой <a href="https://yusyfyunus.github.io/arabic-words-game/">публичную HTTPS-версию</a>. В Safari выбери «аА» → «Настройки веб-сайта» → «Микрофон» → «Разрешить».</p>
         <div class="continue-start-row"><strong>98 аятов · все суры 114–99</strong><button id="start-continue-test">Начать занятие →</button></div>
-        <p class="continue-permission-status" id="continue-permission-status">При первом запуске выбери в Chrome «Разрешать при каждом посещении» — тогда повторять разрешение для каждого аята не нужно.</p>
+        <p class="continue-permission-status" id="continue-permission-status">На iPhone разреши микрофон один раз при начале занятия. Затем Safari будет сам слушать и проверять каждый ответ.</p>
       </div>
       <div id="continue-test" hidden>
         <div class="continue-test-head">
@@ -264,8 +264,11 @@
           <label><input type="radio" name="listen-order" value="ordered" checked> По порядку: от «Ан-Нас» до «Аз-Зильзаля»</label>
           <label><input type="radio" name="listen-order" value="random"> Вразброс: аяты из разных сур</label>
           <label><input type="checkbox" id="listen-auto-next" checked> Автоматически переходить к следующему аяту</label>
+          <span>На iPhone нажми «Начать проверку» и разреши микрофон один раз. После каждого аята Safari сам будет слушать русский перевод и проверять его.</span>
         </div>
+        <p class="listen-origin-notice" id="listen-origin-notice" hidden>Сейчас открыт отдельный файл. Голосовая проверка на iPhone работает в <a href="https://yusyfyunus.github.io/arabic-words-game/">публичной HTTPS-версии</a>. В Safari открой «аА» → «Настройки веб-сайта» → «Микрофон» → «Разрешить».</p>
         <div class="listen-start-row"><strong>98 аятов · 16 сур</strong><button id="start-listen-session">Начать проверку →</button></div>
+        <p class="listen-permission-status" id="listen-permission-status">Микрофон включится один раз при начале занятия и выключится при выходе из голосового раздела.</p>
       </div>
       <div id="listen-player" hidden>
         <div class="listen-player-head">
@@ -319,19 +322,19 @@
     <footer class="ayah-source">Краткие объяснения составлены по материалам <a href="https://azan.ru/tafsir" target="_blank" rel="noopener">тафсира Azan.ru</a>. Для подробного изучения переходи к полному тексту источника.</footer>
   </main>
   <script src="juz30-data.js"></script>
-  <script src="game.js?v=20261001-46"></script>
-  <script src="ayah-game.js?v=20261001-46"></script>
-  <script src="daily-game.js?v=20261001-46"></script>
-  <script src="continue-game.js?v=20261001-46"></script>
-  <script src="listen-game.js?v=20261001-46"></script>
-  <script src="tafsir-game.js?v=20261001-46"></script>
+  <script src="game.js?v=20261005-48"></script>
+  <script src="ayah-game.js?v=20261005-48"></script>
+  <script src="daily-game.js?v=20261005-48"></script>
+  <script src="continue-game.js?v=20261005-48"></script>
+  <script src="listen-game.js?v=20261005-48"></script>
+  <script src="tafsir-game.js?v=20261005-48"></script>
   <script>
     if ("serviceWorker" in navigator && location.protocol === "https:") {
       let reloadingForUpdate = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20261001-46")) return;
+        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20261005-48")) return;
         reloadingForUpdate = true;
-        sessionStorage.setItem("kalimat-sw-20261001-46", "1");
+        sessionStorage.setItem("kalimat-sw-20261005-48", "1");
         location.reload();
       });
       navigator.serviceWorker.register("./sw.js")

@@ -968,9 +968,14 @@ button { color: inherit; }
 .listen-settings { display: grid; gap: 12px; margin: 0 36px 25px; padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: #fbf8f1; }
 .listen-settings label { display: flex; align-items: flex-start; gap: 10px; color: var(--forest-dark); font-size: 13px; font-weight: 750; line-height: 1.45; }
 .listen-settings input { margin-top: 2px; accent-color: #71528a; }
+.listen-settings > span { padding-top: 4px; border-top: 1px solid var(--line); color: rgba(23,51,43,.62); font-size: 12px; line-height: 1.5; }
+.listen-origin-notice { margin: 0 36px 20px; padding: 14px 17px; border: 1px solid #c9b0da; border-radius: 12px; background: #f8f1fb; color: var(--forest-dark); font-size: 13px; line-height: 1.55; }
+.listen-origin-notice a { color: #604478; font-weight: 800; text-decoration: underline; }
 .listen-start-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 20px 36px; border-top: 1px solid var(--line); }
 .listen-start-row strong { color: #71528a; font-family: Georgia, serif; font-size: 18px; }
 .listen-start-row button, .listen-result-screen button { padding: 14px 22px; border: 0; border-radius: 11px; background: #71528a; color: white; cursor: pointer; font-weight: 850; }
+.listen-start-row button:disabled { cursor: wait; opacity: .58; }
+.listen-permission-status { margin: -7px 36px 22px; color: rgba(23,51,43,.58); font-size: 11px; line-height: 1.45; text-align: right; }
 .listen-player-head { padding: 24px 36px 0; }
 .listen-player-head > button { margin-bottom: 20px; padding: 0; border: 0; background: transparent; color: #71528a; cursor: pointer; font-size: 12px; font-weight: 850; }
 .listen-player-head > div { display: flex; justify-content: space-between; margin-bottom: 9px; color: rgba(23,51,43,.58); font-size: 11px; }
@@ -1011,8 +1016,10 @@ button { color: inherit; }
   .listen-setup-heading h2 { font-size: 25px; }
   .listen-setup-heading > p { display: none; }
   .listen-settings { margin: 0 14px 18px; padding: 15px; }
+  .listen-origin-notice { margin: 0 14px 16px; }
   .listen-start-row { align-items: flex-start; flex-direction: column; padding: 15px 14px; }
   .listen-start-row button { width: 100%; }
+  .listen-permission-status { margin: -4px 14px 18px; text-align: left; }
   .listen-player-head { padding: 20px 18px 0; }
   .listen-content { min-height: 500px; padding: 30px 16px 40px; }
   .listen-arabic { padding: 20px 14px; font-size: 31px; line-height: 1.8; }
