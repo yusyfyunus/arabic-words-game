@@ -96,7 +96,27 @@ const LESSONS = [{
   ["زِلْزَالٌ", "Сотрясение, землетрясение"], ["أَثْقَالٌ", "Тяжести, ноши"],
   ["مَا", "Что?"], ["أَخْبَارٌ", "Вести, сообщения"],
   ["أَوْحَى", "Внушать"], ["أَشْتَاتٌ", "Разрозненные группы"],
-  ["خَيْرٌ", "Добро"], ["شَرٌّ", "Зло"]
+    ["خَيْرٌ", "Добро"], ["شَرٌّ", "Зло"]
+  ].map(([arabic, russian]) => ({ arabic, russian }))
+}, {
+  id: "lesson-10",
+  title: "Урок 10 · Аль-Баййина",
+  words: [
+    ["أَهْلٌ", "Люди, семья, обладатели"], ["كِتَابٌ", "Книга, Писание"],
+    ["مُشْرِكٌ", "Многобожник"], ["اِنْفَكَّ", "Прекращать, оставлять; отделяться"],
+    ["أَتَى", "Приходить"], ["بَيِّنَةٌ", "Ясное доказательство, ясное знамение"],
+    ["رَسُولٌ", "Посланник"], ["تَلَا", "Читать, декламировать"],
+    ["صُحُفٌ", "Страницы, свитки"], ["مُطَهَّرَةٌ", "Очищенная"],
+    ["قَيِّمَةٌ", "Правильная, истинная"], ["تَفَرَّقَ", "Разделяться, расходиться"],
+    ["آتَى", "Давать, даровать"], ["أَمَرَ", "Приказывать, повелевать"],
+    ["مُخْلِصٌ", "Искренний, очищающий веру"], ["حَنِيفٌ", "Единобожник, отвернувшийся от многобожия"],
+    ["أَقَامَ", "Устанавливать; совершать"], ["صَلَاةٌ", "Молитва, намаз"],
+    ["زَكَاةٌ", "Закят, обязательная милостыня"], ["جَهَنَّمُ", "Ад, Джаханнам"],
+    ["خَالِدٌ", "Пребывающий вечно"], ["بَرِيَّةٌ", "Творение, создания"],
+    ["جَزَاءٌ", "Воздаяние, награда"], ["جَنَّاتٌ", "Сады"],
+    ["عَدْنٌ", "Вечное пребывание, Эдем"], ["جَرَى", "Течь"],
+    ["أَنْهَارٌ", "Реки"], ["أَبَدًا", "Навечно, вечно"],
+    ["رَضِيَ", "Быть довольным"], ["خَشِيَ", "Бояться, благоговеть"]
   ].map(([arabic, russian]) => ({ arabic, russian }))
 }];
 
@@ -483,6 +503,7 @@ function reset(nextMode = mode, nextScope = scope) {
   $("scope-lesson7").classList.toggle("active", scope === "lesson-7");
   $("scope-lesson8").classList.toggle("active", scope === "lesson-8");
   $("scope-lesson9").classList.toggle("active", scope === "lesson-9");
+  $("scope-lesson10").classList.toggle("active", scope === "lesson-10");
   $("scope-all").classList.toggle("active", scope === "all");
   $("scope-hard").classList.toggle("active", scope === "hard");
   $("mode-translate").parentElement.hidden = scope === "hard";
@@ -510,6 +531,7 @@ $("scope-lesson6").addEventListener("click", () => scope !== "lesson-6" && reset
 $("scope-lesson7").addEventListener("click", () => scope !== "lesson-7" && reset(mode, "lesson-7"));
 $("scope-lesson8").addEventListener("click", () => scope !== "lesson-8" && reset(mode, "lesson-8"));
 $("scope-lesson9").addEventListener("click", () => scope !== "lesson-9" && reset(mode, "lesson-9"));
+$("scope-lesson10").addEventListener("click", () => scope !== "lesson-10" && reset(mode, "lesson-10"));
 $("scope-all").addEventListener("click", () => scope !== "all" && reset(mode, "all"));
 $("scope-hard").addEventListener("click", () => scope !== "hard" && reset(mode, "hard"));
 $("restart").addEventListener("click", () => reset());

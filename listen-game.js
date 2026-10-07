@@ -1,6 +1,6 @@
 // «Скажи перевод»: Айман Сувайд читает аят, затем ученица произносит перевод.
 const LISTEN_SURAHS = JUZ30_SURAHS
-  .filter((surah) => surah.number >= 99 && surah.number <= 114)
+  .filter((surah) => surah.number >= 98 && surah.number <= 114)
   .sort((a, b) => b.number - a.number);
 
 const LISTEN_ITEMS = LISTEN_SURAHS.flatMap((surah) => surah.ayahs.map((ayah) => ({
@@ -16,12 +16,13 @@ const listenState = {
   audioSource: null, audioBuffers: new Map(), audioToken: 0,
   utterance: null, recognition: null,
   recognitionActive: false, recognitionGeneration: 0, recognitionRestartTimer: null,
-  recognitionWatchdogTimer: null, recognitionRecoveryCount: 0,
+  recognitionStartTimer: null, recognitionWatchdogTimer: null, recognitionRecoveryCount: 0,
   microphoneStream: null, microphonePermissionPromise: null,
   microphonePermission: "unknown", microphonePrimed: false, microphoneRequestGeneration: 0,
   spokenParts: [], currentTranscript: "", listenUntil: 0,
+  manualFallbackActive: false,
   gradedItems: new Set(),
-  timer: null, gradeTimer: null, deadlineTimer: null, token: 0
+  timer: null, gradeTimer: null, deadlineTimer: null, feedbackTimer: null, token: 0
 };
 const LISTEN_SILENCE_MS = 5000;
 const listenEl = (id) => document.getElementById(id);
@@ -194,9 +195,10 @@ function listenTranslationScore(spoken, expected) {
 function listenTranslationAccepted(spoken, expected) {
   const target = normalizeListenWords(expected);
   const score = listenTranslationScore(spoken, expected);
-  // В коротком переводе нельзя принимать одно угаданное слово из двух.
-  // В длинном допускаем небольшую погрешность распознавания Safari.
-  if (target.length <= 3) return score >= 0.99;
+  // В ответе из одного-двух слов сохраняем строгость. Для трёх слов принимаем
+  // два совпавших: Safari на iPhone часто меняет окончание третьего слова.
+  if (target.length <= 2) return score >= 0.99;
+  if (target.length === 3) return score >= 0.66;
   return score >= 0.7;
 }
 
@@ -285,10 +287,12 @@ function stopListenRecognition() {
   clearTimeout(listenState.gradeTimer);
   clearTimeout(listenState.deadlineTimer);
   clearTimeout(listenState.recognitionRestartTimer);
+  clearTimeout(listenState.recognitionStartTimer);
   clearTimeout(listenState.recognitionWatchdogTimer);
   listenState.gradeTimer = null;
   listenState.deadlineTimer = null;
   listenState.recognitionRestartTimer = null;
+  listenState.recognitionStartTimer = null;
   listenState.recognitionWatchdogTimer = null;
   listenState.recognitionGeneration += 1;
   const recognition = listenState.recognition;
@@ -305,11 +309,14 @@ function stopListenRecognition() {
 function stopListenPlayback() {
   listenState.token += 1;
   clearTimeout(listenState.timer);
+  clearTimeout(listenState.feedbackTimer);
   listenState.timer = null;
+  listenState.feedbackTimer = null;
   stopListenRecognition();
   stopListenAudio();
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
   listenState.utterance = null;
+  setListenAudioSession("auto");
 }
 
 function updateListenProgress() {
@@ -324,21 +331,78 @@ function setListenStatus(stage, status) {
   listenEl("listen-status").textContent = status;
 }
 
-function speakListenFeedback(text, onEnd) {
-  if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
+function playListenFeedback(correct, text, onEnd) {
+  clearTimeout(listenState.feedbackTimer);
+  stopListenAudio();
+  setListenAudioSession("playback");
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    clearTimeout(listenState.feedbackTimer);
+    listenState.feedbackTimer = null;
+    listenState.utterance = null;
+    setListenAudioSession("auto");
     onEnd?.();
-    return;
+  };
+  listenState.feedbackTimer = setTimeout(finish, 3800);
+
+  if (correct) {
+    const context = ensureListenAudioContext();
+    const token = listenState.audioToken;
+    if (context) {
+      loadListenAudioBuffer("audio/feedback/mashaallah.wav")
+        .then((buffer) => context.resume().then(() => buffer))
+        .then((buffer) => {
+          if (finished || token !== listenState.audioToken) return;
+          const source = context.createBufferSource();
+          source.buffer = buffer;
+          source.connect(context.destination);
+          listenState.audioSource = source;
+          source.onended = () => {
+            if (listenState.audioSource === source) listenState.audioSource = null;
+            try { source.disconnect(); } catch (error) { /* уже отключён */ }
+            finish();
+          };
+          source.start(0);
+        })
+        .catch(() => finish());
+      return;
+    }
   }
+
+  // Между сеансами распознавания на iPhone не запускаем speechSynthesis:
+  // WebKit может после него перестать возвращать onresult. Правильный перевод
+  // уже показан на экране, и страховочный таймер продолжит занятие.
+  if (isListenIOS() || !("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) return;
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "ru-RU";
   utterance.rate = 0.86;
-  let finished = false;
-  const finish = () => { if (!finished) { finished = true; onEnd?.(); } };
   utterance.onend = finish;
   utterance.onerror = finish;
   listenState.utterance = utterance;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
+  if (window.speechSynthesis.speaking || window.speechSynthesis.pending) window.speechSynthesis.cancel();
+  window.speechSynthesis.resume();
+  setTimeout(() => {
+    if (!finished) window.speechSynthesis.speak(utterance);
+  }, 70);
+}
+
+function hideListenManualFallback() {
+  listenState.manualFallbackActive = false;
+  const fallback = listenEl("listen-manual-fallback");
+  const input = listenEl("listen-manual-answer");
+  if (fallback) fallback.hidden = true;
+  if (input) input.value = "";
+}
+
+function showListenManualFallback(message) {
+  listenState.manualFallbackActive = true;
+  stopListenRecognition();
+  listenState.stage = "answer";
+  const fallback = listenEl("listen-manual-fallback");
+  if (fallback) fallback.hidden = false;
+  setListenStatus("Safari не передал речь", message || "Нажми микрофон на клавиатуре iPhone, продиктуй перевод и нажми «Проверить ответ».");
 }
 
 function finishListenAnswer(correct, transcript = "") {
@@ -348,6 +412,7 @@ function finishListenAnswer(correct, transcript = "") {
   const answerToken = listenState.token;
   const answerIndex = listenState.index;
   stopListenRecognition();
+  hideListenManualFallback();
   listenState.stage = "feedback";
   listenEl("listen-translation").textContent = item.russian;
   listenEl("listen-heard").textContent = transcript ? `Услышано: ${transcript}` : "";
@@ -373,18 +438,42 @@ function finishListenAnswer(correct, transcript = "") {
 
   if (correct) {
     setListenStatus("Ма ша Аллах", "Перевод принят как верный.");
-    speakListenFeedback("Ма ша Аллах", moveOn);
+    playListenFeedback(true, "Ма ша Аллах", moveOn);
   } else {
-    setListenStatus("Повтори перевод", "Сейчас прозвучит правильный вариант.");
-    speakListenFeedback(item.russian, moveOn);
+    setListenStatus(
+      isListenIOS() ? "Правильный перевод" : "Повтори перевод",
+      isListenIOS() ? "Правильный вариант показан на экране." : "Сейчас прозвучит правильный вариант."
+    );
+    playListenFeedback(false, item.russian, moveOn);
   }
 }
 
+function recoverListenRecognition(token, generation, recognition, message) {
+  if (token !== listenState.token || generation !== listenState.recognitionGeneration
+    || listenState.stage !== "answer" || listenState.manualFallbackActive) return;
+  listenState.recognitionRecoveryCount += 1;
+  recognition.onstart = null;
+  recognition.onend = null;
+  recognition.onerror = null;
+  recognition.onresult = null;
+  try { recognition.abort(); } catch (error) { /* зависший сеанс может не отвечать */ }
+  if (listenState.recognition === recognition) listenState.recognition = null;
+  listenState.recognitionActive = false;
+  clearTimeout(listenState.recognitionStartTimer);
+  clearTimeout(listenState.recognitionWatchdogTimer);
+  if (listenState.recognitionRecoveryCount >= 2) {
+    showListenManualFallback(message);
+    return;
+  }
+  setListenStatus("Перезапускаю микрофон", "Safari не передал услышанный текст. Повтори перевод после сообщения «Микрофон слушает».");
+  listenState.recognitionRestartTimer = setTimeout(() => startListenRecognition(token), isListenIOS() ? 1500 : 600);
+}
+
 function startListenRecognition(token) {
-  if (token !== listenState.token || listenState.paused || listenState.stage !== "answer") return;
+  if (token !== listenState.token || listenState.paused || listenState.stage !== "answer" || listenState.manualFallbackActive) return;
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!Recognition) {
-    setListenStatus("Распознавание речи недоступно", "Открой публичный сайт через HTTPS в Safari и включи Siri и диктовку. Можно нажать «Не помню — ответ».");
+    showListenManualFallback("Автоматическое распознавание недоступно. Нажми микрофон на клавиатуре iPhone, продиктуй перевод и проверь его.");
     return;
   }
   const generation = listenState.recognitionGeneration;
@@ -403,19 +492,13 @@ function startListenRecognition(token) {
   recognition.onstart = () => {
     if (token !== listenState.token || generation !== listenState.recognitionGeneration) return;
     listenState.recognitionActive = true;
+    clearTimeout(listenState.recognitionStartTimer);
+    listenState.recognitionStartTimer = null;
     setListenStatus("Твой перевод", "Микрофон слушает. Произнеси перевод по-русски — у тебя 1 минута.");
     clearTimeout(listenState.recognitionWatchdogTimer);
     listenState.recognitionWatchdogTimer = setTimeout(() => {
       if (receivedResult || token !== listenState.token || listenState.stage !== "answer") return;
-      listenState.recognitionRecoveryCount += 1;
-      setListenStatus("Слушаю ещё раз", "Safari пока не передал текст. Не нажимай ничего — произнеси перевод ещё раз.");
-      recognition.onend = null;
-      recognition.onerror = null;
-      recognition.onresult = null;
-      try { recognition.abort(); } catch (error) { /* уже остановлен */ }
-      if (listenState.recognition === recognition) listenState.recognition = null;
-      listenState.recognitionActive = false;
-      listenState.recognitionRestartTimer = setTimeout(() => startListenRecognition(token), isListenIOS() ? 1200 : 500);
+      recoverListenRecognition(token, generation, recognition, "Safari включил микрофон, но дважды не передал текст. Продиктуй ответ через микрофон клавиатуры.");
     }, 15000);
   };
   recognition.onresult = (event) => {
@@ -449,18 +532,18 @@ function startListenRecognition(token) {
     lastError = event.error || "unknown";
     listenState.recognitionActive = false;
     clearTimeout(listenState.recognitionWatchdogTimer);
+    clearTimeout(listenState.recognitionStartTimer);
     listenState.recognitionWatchdogTimer = null;
     if (["not-allowed", "service-not-allowed"].includes(event.error)) {
-      listenState.stage = "blocked";
-      clearTimeout(listenState.deadlineTimer);
-      listenState.deadlineTimer = null;
-      setListenStatus("Нет доступа к микрофону", "В Safari открой «аА» → «Настройки веб-сайта» → «Микрофон» → «Разрешить», затем начни занятие снова.");
+      showListenManualFallback("Safari не разрешил автоматическое распознавание. Разреши микрофон сайту или продиктуй перевод через клавиатуру iPhone.");
       return;
     }
     if (event.error === "network") {
-      setListenStatus("Нужно соединение для распознавания", "На iPhone запись аята работает офлайн, но распознавание речи Safari может требовать интернет.");
+      recoverListenRecognition(token, generation, recognition, "Служба распознавания Safari дважды не ответила. Продиктуй перевод через микрофон клавиатуры.");
+      return;
     } else if (event.error === "audio-capture") {
-      setListenStatus("Микрофон занят", "Закрой диктофон, звонок или другое приложение с микрофоном и попробуй снова.");
+      recoverListenRecognition(token, generation, recognition, "Safari дважды не получил звук с микрофона. Закрой звонок или диктофон либо продиктуй перевод через микрофон клавиатуры.");
+      return;
     } else if (event.error !== "aborted") {
       setListenStatus("Слушаю ещё раз", "Произнеси перевод целиком.");
     }
@@ -469,6 +552,7 @@ function startListenRecognition(token) {
     if (token !== listenState.token || generation !== listenState.recognitionGeneration) return;
     listenState.recognitionActive = false;
     clearTimeout(listenState.recognitionWatchdogTimer);
+    clearTimeout(listenState.recognitionStartTimer);
     listenState.recognitionWatchdogTimer = null;
     if (listenState.recognition === recognition) listenState.recognition = null;
     if (bestTranscript) {
@@ -478,10 +562,16 @@ function startListenRecognition(token) {
     }
     // Даже если уже идёт отсчёт тишины, новый короткий сеанс Safari должен
     // продолжить слушать. Следующий фрагмент сбросит таймер и дополнит ответ.
-    if (listenState.paused || listenState.stage !== "answer" || Date.now() >= listenState.listenUntil) return;
+    if (listenState.paused || listenState.manualFallbackActive || listenState.stage !== "answer" || Date.now() >= listenState.listenUntil) return;
     const retryDelay = lastError === "network" ? 1800 : isListenIOS() ? 700 : 350;
     listenState.recognitionRestartTimer = setTimeout(() => startListenRecognition(token), retryDelay);
   };
+  clearTimeout(listenState.recognitionStartTimer);
+  listenState.recognitionStartTimer = setTimeout(() => {
+    if (!receivedResult && !listenState.recognitionActive) {
+      recoverListenRecognition(token, generation, recognition, "Safari дважды не запустил распознавание. Продиктуй перевод через микрофон клавиатуры.");
+    }
+  }, 6000);
   try {
     const track = listenState.microphoneStream?.getAudioTracks()
       .find((audioTrack) => audioTrack.readyState === "live");
@@ -496,7 +586,8 @@ function startListenRecognition(token) {
     if (token !== listenState.token || generation !== listenState.recognitionGeneration) return;
     listenState.recognition = null;
     listenState.recognitionActive = false;
-    listenState.recognitionRestartTimer = setTimeout(() => startListenRecognition(token), isListenIOS() ? 1000 : 500);
+    clearTimeout(listenState.recognitionStartTimer);
+    recoverListenRecognition(token, generation, recognition, "Safari не смог запустить распознавание. Продиктуй перевод через микрофон клавиатуры.");
   }
 }
 
@@ -506,14 +597,14 @@ function beginListenAnswer(item, token) {
   listenState.spokenParts = [];
   listenState.currentTranscript = "";
   listenState.recognitionRecoveryCount = 0;
+  hideListenManualFallback();
   listenState.listenUntil = Date.now() + 60000;
   listenEl("listen-translation").textContent = "Теперь произнеси перевод этого аята по-русски.";
   listenEl("listen-heard").textContent = isListenIOS() ? "Готовлю микрофон Safari…" : "Слушаю перевод…";
   prepareListenMicrophone().then((granted) => {
     if (token !== listenState.token || listenState.stage !== "answer") return;
     if (!granted) {
-      listenState.stage = "blocked";
-      setListenStatus("Микрофон не включился", "Разреши микрофон для этого сайта и начни занятие снова.");
+      showListenManualFallback("Микрофон сайта не включился. Нажми микрофон на русской клавиатуре iPhone, продиктуй перевод и нажми «Проверить ответ».");
       return;
     }
     startListenRecognition(token);
@@ -536,6 +627,7 @@ function playListenCurrent() {
   listenEl("listen-arabic").textContent = item.arabic;
   listenEl("listen-translation").textContent = "Сначала внимательно послушай аят.";
   listenEl("listen-heard").textContent = "";
+  hideListenManualFallback();
   listenEl("listen-pause").textContent = "⏸ Пауза";
   listenState.stage = "arabic";
   setListenStatus("Читает Айман Сувайд", "После аята микрофон автоматически включится для твоего перевода.");
@@ -638,7 +730,6 @@ async function startListenSession() {
   if (startButton) startButton.disabled = true;
   const granted = await prepareListenMicrophone();
   if (startButton) startButton.disabled = false;
-  if (!granted) return;
   const randomOrder = document.querySelector('input[name="listen-order"]:checked')?.value === "random";
   listenState.deck = randomOrder ? shuffleListenItems(LISTEN_ITEMS) : [...LISTEN_ITEMS];
   listenState.index = 0;
@@ -649,6 +740,10 @@ async function startListenSession() {
   listenEl("listen-result").hidden = true;
   listenEl("listen-player").hidden = false;
   playListenCurrent();
+  if (!granted) {
+    const status = listenEl("listen-permission-status");
+    if (status) status.textContent = "Автоматический микрофон недоступен. После аята можно продиктовать ответ через микрофон клавиатуры iPhone.";
+  }
 }
 
 function showListenSetup() {
@@ -666,6 +761,13 @@ listenEl("listen-previous").addEventListener("click", () => moveListen(-1));
 listenEl("listen-next").addEventListener("click", () => moveListen(1));
 listenEl("listen-repeat").addEventListener("click", playListenCurrent);
 listenEl("listen-pause").addEventListener("click", pauseListen);
+listenEl("listen-manual-check").addEventListener("click", () => {
+  const input = listenEl("listen-manual-answer");
+  const transcript = input.value.trim();
+  if (!transcript || listenState.stage !== "answer") return;
+  const current = listenState.deck[listenState.index];
+  finishListenAnswer(listenTranslationAccepted(transcript, current.russian), transcript);
+});
 listenEl("listen-reveal").addEventListener("click", () => {
   const transcript = [...listenState.spokenParts, listenState.currentTranscript].filter(Boolean).join(" ").trim();
   finishListenAnswer(false, transcript);

@@ -1,7 +1,7 @@
-const CACHE_NAME = "kalimat-trainer-20261005-48";
-const SURAH_COUNTS = { 99: 8, 100: 11, 101: 11, 102: 8, 103: 3, 104: 9, 105: 5, 106: 4, 107: 7, 108: 3, 109: 6, 110: 3, 111: 5, 112: 4, 113: 5, 114: 6 };
+const CACHE_NAME = "kalimat-trainer-20261007-50";
+const SURAH_COUNTS = { 98: 8, 99: 8, 100: 11, 101: 11, 102: 8, 103: 3, 104: 9, 105: 5, 106: 4, 107: 7, 108: 3, 109: 6, 110: 3, 111: 5, 112: 4, 113: 5, 114: 6 };
 const AUDIO_ASSETS = Object.entries(SURAH_COUNTS).flatMap(([surah, count]) =>
-  Array.from({ length: count }, (_, index) => `./audio/ayman-suwaid/${surah}${String(index + 1).padStart(3, "0")}.mp3`)
+  Array.from({ length: count }, (_, index) => `./audio/ayman-suwaid/${String(surah).padStart(3, "0")}${String(index + 1).padStart(3, "0")}.mp3`)
 );
 const APP_ASSETS = [
   "./",
@@ -17,6 +17,7 @@ const APP_ASSETS = [
   "./listen-game.js",
   "./tafsir-game.js",
   "./manifest.webmanifest",
+  "./audio/feedback/mashaallah.wav",
   ...AUDIO_ASSETS
 ];
 

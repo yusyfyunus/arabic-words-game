@@ -1,5 +1,5 @@
 const DAILY_SURAHS = JUZ30_SURAHS
-  .filter((surah) => surah.number >= 99 && surah.number <= 114)
+  .filter((surah) => surah.number >= 98 && surah.number <= 114)
   .sort((a, b) => b.number - a.number);
 
 const DAILY_DAYS = 7;
@@ -15,7 +15,7 @@ function dailyWeekId(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
-const DAILY_PROGRESS_KEY = `kalimat-daily-progress-v3-${dailyWeekId()}`;
+const DAILY_PROGRESS_KEY = `kalimat-daily-progress-v4-${dailyWeekId()}`;
 const DAILY_AYAH_ENTRIES = DAILY_SURAHS.flatMap((surah) => surah.ayahs.map((ayah) => ({
   ...ayah,
   surahNumber: surah.number,
