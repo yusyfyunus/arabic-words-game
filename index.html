@@ -13,7 +13,7 @@
   <meta property="og:url" content="https://yusyfyunus.github.io/arabic-words-game/">
   <meta property="og:image" content="https://yusyfyunus.github.io/arabic-words-game/og.png">
   <title>Арабский тренажёр</title>
-  <link rel="stylesheet" href="style.css?v=20261007-50">
+  <link rel="stylesheet" href="style.css?v=20261008-51">
 </head>
 <body>
   <main class="portal-shell" id="portal-home">
@@ -75,7 +75,7 @@
       <button class="dictionary-button" id="open-dictionary"><span aria-hidden="true">☰</span> Все слова</button>
     </header>
     <section class="hero" id="game">
-      <p class="eyebrow">10 уроков · 180 слов · твой личный тренажёр</p>
+      <p class="eyebrow">10 уроков · 160 слов · твой личный тренажёр</p>
       <h1>Запомни слово.<br><em>Узнай его с первого взгляда.</em></h1>
       <p class="intro">Короткие раунды на перевод и написание — по словам с твоих фотографий.</p>
     </section>
@@ -90,8 +90,8 @@
         <button id="scope-lesson7"><span>Седьмой урок</span><strong>Урок 7</strong><small>11 слов</small></button>
         <button id="scope-lesson8"><span>Восьмой урок</span><strong>Урок 8 · Аль-Адият</strong><small>11 слов</small></button>
         <button id="scope-lesson9"><span>Девятый урок</span><strong>Урок 9 · Аз-Зильзаля</strong><small>8 слов</small></button>
-        <button id="scope-lesson10"><span>Десятый урок</span><strong>Урок 10 · Аль-Баййина</strong><small>30 слов</small></button>
-        <button id="scope-all"><span>Общий повтор</span><strong>Повторить всё</strong><small>180 слов пройдено</small></button>
+        <button id="scope-lesson10"><span>Десятый урок</span><strong>Урок 10 · Аль-Баййина</strong><small>10 слов</small></button>
+        <button id="scope-all"><span>Общий повтор</span><strong>Повторить всё</strong><small>160 слов пройдено</small></button>
         <button id="scope-hard"><span>Личный тест</span><strong>Трудные слова</strong><small id="scope-hard-count">0 выбрано</small></button>
       </div>
       <div class="mode-switch" aria-label="Режим игры">
@@ -328,19 +328,19 @@
     <footer class="ayah-source">Краткие объяснения составлены по материалам <a href="https://azan.ru/tafsir" target="_blank" rel="noopener">тафсира Azan.ru</a>. Для подробного изучения переходи к полному тексту источника.</footer>
   </main>
   <script src="juz30-data.js"></script>
-  <script src="game.js?v=20261007-50"></script>
-  <script src="ayah-game.js?v=20261007-50"></script>
-  <script src="daily-game.js?v=20261007-50"></script>
-  <script src="continue-game.js?v=20261007-50"></script>
-  <script src="listen-game.js?v=20261007-50"></script>
-  <script src="tafsir-game.js?v=20261007-50"></script>
+  <script src="game.js?v=20261008-51"></script>
+  <script src="ayah-game.js?v=20261008-51"></script>
+  <script src="daily-game.js?v=20261008-51"></script>
+  <script src="continue-game.js?v=20261008-51"></script>
+  <script src="listen-game.js?v=20261008-51"></script>
+  <script src="tafsir-game.js?v=20261008-51"></script>
   <script>
     if ("serviceWorker" in navigator && location.protocol === "https:") {
       let reloadingForUpdate = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20261007-50")) return;
+        if (reloadingForUpdate || sessionStorage.getItem("kalimat-sw-20261008-51")) return;
         reloadingForUpdate = true;
-        sessionStorage.setItem("kalimat-sw-20261007-50", "1");
+        sessionStorage.setItem("kalimat-sw-20261008-51", "1");
         location.reload();
       });
       navigator.serviceWorker.register("./sw.js")
