@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Тренажёр по словарю 1 тома мединского курса: уроки, тесты и личные трудные слова">
+  <title>Словарь 1 тома мединского курса</title>
+  <link rel="stylesheet" href="style.css?v=13">
+</head>
+<body>
+  <main class="page-shell">
+    <div class="background-shape background-shape-one" aria-hidden="true"></div>
+    <div class="background-shape background-shape-two" aria-hidden="true"></div>
+    <div class="floating-quote floating-quote-one" aria-hidden="true">م</div>
+    <div class="floating-quote floating-quote-two" aria-hidden="true">د</div>
+
+    <header class="topbar">
+      <a class="brand" href="#game">
+        <span class="brand-mark">م</span>
+        <span>Мединский курс</span>
+      </a>
+      <div class="topbar-actions">
+        <a class="text-link" href="./privacy.html">Конфиденциальность</a>
+        <button class="dictionary-button" id="open-dictionary"><span aria-hidden="true">☰</span> Словарь</button>
+      </div>
+    </header>
+
+    <section class="hero" id="game">
+      <p class="eyebrow">1 том · уроки по порядку · личный тренажёр</p>
+      <h1>Запоминай слова.<br><em>Проверяй себя без лишней суеты.</em></h1>
+      <p class="intro">Тот же удобный формат, что и в твоём предыдущем сайте: уроки, общий повтор, режим на перевод и режим на написание по-арабски. Сайт работает без интернета, без VPN и без регистрации.</p>
+      <div class="hero-stats" aria-label="Краткая сводка">
+        <div><strong id="lesson-count">0</strong><span>уроков</span></div>
+        <div><strong id="word-count">0</strong><span>слов в базе</span></div>
+        <div><strong>2</strong><span>режима теста</span></div>
+      </div>
+      <div class="offline-badge" aria-label="Офлайн режим">Работает полностью офлайн</div>
+    </section>
+
+    <section class="game-card" aria-live="polite">
+      <div class="lesson-switch" aria-label="Выбор урока">
+        <label class="lesson-select-card active" id="scope-lesson-group" for="lesson-number">
+          <span>Выбор урока</span>
+          <strong>Урок 1</strong>
+          <small>Переключайся между всеми уроками словаря</small>
+          <select id="lesson-number" aria-label="Номер урока"></select>
+        </label>
+        <button id="scope-all"><span>Повтор</span><strong>Все уроки</strong><small>Смешать весь словарь</small></button>
+        <button id="scope-hard"><span>Личный тест</span><strong>Трудные слова</strong><small id="scope-hard-count">0 выбрано</small></button>
+        <button id="scope-dictation"><span>До воскресенья</span><strong>Диктант: 3 дня</strong><small>Временный план подготовки</small></button>
+      </div>
+
+      <div class="mode-switch" aria-label="Режим игры">
+        <button class="active" id="mode-translate"><span aria-hidden="true">↔</span> Перевод</button>
+        <button id="mode-spell"><span aria-hidden="true">✎</span> Написание</button>
+      </div>
+
+      <div class="game-meta">
+        <div class="progress-label"><span id="question-number">Перед началом теста</span><span id="progress-percent">0%</span></div>
+        <div class="progress-track"><span id="progress-bar" style="width:0%"></span></div>
+      </div>
+
+      <div class="question-block" id="question-block"></div>
+
+      <footer class="score-row">
+        <div><span class="score-dot score-dot-green"></span>Верно <strong id="score">0</strong></div>
+        <div><span class="score-dot score-dot-gold"></span>Серия <strong id="streak">0</strong></div>
+        <button id="restart">↻ Начать заново</button>
+      </footer>
+    </section>
+
+    <section class="study-note">
+      <span class="note-number">01</span>
+      <div>
+        <p>Подсказка для памяти</p>
+        <h2>Сначала просматривай урок, потом включай режим написания.</h2>
+      </div>
+      <div class="mini-card">
+        <span dir="rtl" lang="ar">زَهْرَةٌ</span>
+        <small>Цветок</small>
+      </div>
+    </section>
+
+    <div class="modal-backdrop" id="dictionary-backdrop" role="presentation" hidden>
+      <section class="dictionary-modal" role="dialog" aria-modal="true" aria-labelledby="dictionary-title">
+        <div class="dictionary-heading">
+          <div>
+            <p class="eyebrow">Твой набор</p>
+            <h2 id="dictionary-title">Словарь 1 тома</h2>
+          </div>
+          <button id="close-dictionary" aria-label="Закрыть словарь">×</button>
+        </div>
+        <div class="dictionary-tools">
+          <input id="dictionary-search" type="search" placeholder="Поиск по русскому или арабскому слову" aria-label="Поиск по словарю">
+          <div class="dictionary-hint">Слова можно отмечать как трудные прямо из списка.</div>
+        </div>
+        <div class="word-list" id="word-list"></div>
+      </section>
+    </div>
+  </main>
+  <script src="game.js?v=13"></script>
+</body>
+</html>
