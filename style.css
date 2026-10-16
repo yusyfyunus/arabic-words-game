@@ -1,4 +1,9 @@
-@font-face {
+.listen-choice i { color: #604478; }
+.recitation-choice { display: block; background: #173f36; color: white; text-decoration: none; }
+.recitation-choice::after { background: rgba(255,255,255,.07); }
+.recitation-choice .project-arabic { color: #f2c98f; }
+.recitation-choice p { color: rgba(255,255,255,.72); }
+.recitation-choice i { color: #f2c98f; }@font-face {
   font-family: "Uthmanic Hafs";
   src: url("UthmanicHafs1Ver18.woff2") format("woff2");
   font-style: normal;
