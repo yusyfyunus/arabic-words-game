@@ -1,9 +1,4 @@
-.listen-choice i { color: #604478; }
-.recitation-choice { display: block; background: #173f36; color: white; text-decoration: none; }
-.recitation-choice::after { background: rgba(255,255,255,.07); }
-.recitation-choice .project-arabic { color: #f2c98f; }
-.recitation-choice p { color: rgba(255,255,255,.72); }
-.recitation-choice i { color: #f2c98f; }@font-face {
+@font-face {
   font-family: "Uthmanic Hafs";
   src: url("UthmanicHafs1Ver18.woff2") format("woff2");
   font-style: normal;
@@ -710,6 +705,11 @@ button { color: inherit; }
 .listen-choice::after { background: rgba(92,64,120,.10); }
 .listen-choice .project-arabic { color: #71528a; }
 .listen-choice i { color: #604478; }
+.recitation-choice { display: block; background: #173f36; color: white; text-decoration: none; }
+.recitation-choice::after { background: rgba(255,255,255,.07); }
+.recitation-choice .project-arabic { color: #f2c98f; }
+.recitation-choice p { color: rgba(255,255,255,.72); }
+.recitation-choice i { color: #f2c98f; }
 .back-project { border: 0; background: transparent; color: var(--forest); cursor: pointer; font-size: 12px; font-weight: 850; }
 .page-shell .topbar { display: grid; grid-template-columns: 1fr auto 1fr; gap: 15px; }
 .page-shell .topbar .back-project { justify-self: start; }
