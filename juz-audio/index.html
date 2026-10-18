@@ -4,101 +4,79 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#103f35">
-  <meta name="description" content="28-й, 29-й и 30-й джузы в чтении шейха Аймана Сувейда">
-  <title>28–30-й джузы · Айман Сувейд</title>
-  <link rel="stylesheet" href="style.css?v=1">
+  <meta name="description" content="Продолжение аятов 28-го, 29-го и 30-го джузов в чтении Аймана Сувейда">
+  <title>Продолжи аят · 28–30-й джузы</title>
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
   <header class="topbar">
     <a class="back" href="../">← Все разделы</a>
-    <div class="brand"><span class="brand-mark">ص</span><span>Аудио Корана</span></div>
+    <div class="brand"><span class="brand-mark">ت</span><span>Продолжи аят</span></div>
     <span class="reciter">Айман Сувейд</span>
   </header>
 
   <main>
     <section class="hero">
-      <p class="eyebrow">Слушай по аятам и по порядку</p>
-      <h1>Три джуза.<br><em>Одно чтение.</em></h1>
-      <p class="hero-copy">Выбери джуз, суру и аят. Можно слушать один аят или включить непрерывное воспроизведение всей суры.</p>
-      <div class="hero-stats" aria-label="Состав раздела">
-        <div><strong>28</strong><span>9 сур · 137 аятов</span></div>
-        <div><strong>29</strong><span>11 сур · 431 аят</span></div>
-        <div><strong>30</strong><span>37 сур · 564 аята</span></div>
-      </div>
+      <p class="eyebrow">Точно как в разделе «Продолжи аят»</p>
+      <h1>Айман начинает.<br><em>Ты продолжаешь.</em></h1>
+      <p class="hero-copy">Выбери джуз один раз. Для первого аята приложение назовёт суру, для остальных Айман Сувейд прочитает предыдущий аят. Затем микрофон сам включится, проверит продолжение и перейдёт дальше.</p>
     </section>
 
-    <section class="workspace">
-      <div class="juz-tabs" role="tablist" aria-label="Выбор джуза">
-        <button class="active" data-juz="30" role="tab"><small>Джуз</small><strong>30</strong><span>عمّ</span></button>
-        <button data-juz="29" role="tab"><small>Джуз</small><strong>29</strong><span>تبارك</span></button>
-        <button data-juz="28" role="tab"><small>Джуз</small><strong>28</strong><span>قد سمع</span></button>
+    <section class="juz-screen" id="juz-screen">
+      <div class="section-heading"><p class="eyebrow">Три отдельных раздела</p><h2>Выбери один джуз</h2></div>
+      <div class="juz-grid">
+        <button class="juz-card" data-juz="30"><span class="juz-number">30</span><span class="juz-arabic" lang="ar" dir="rtl">عَمَّ</span><strong>30-й джуз</strong><small>37 сур · 564 продолжения</small><i>Начать тренировку →</i></button>
+        <button class="juz-card" data-juz="29"><span class="juz-number">29</span><span class="juz-arabic" lang="ar" dir="rtl">تَبَارَكَ</span><strong>29-й джуз</strong><small>11 сур · 431 продолжение</small><i>Начать тренировку →</i></button>
+        <button class="juz-card" data-juz="28"><span class="juz-number">28</span><span class="juz-arabic" lang="ar" dir="rtl">قَدْ سَمِعَ</span><strong>28-й джуз</strong><small>9 сур · 137 продолжений</small><i>Начать тренировку →</i></button>
       </div>
-
-      <div class="content-grid">
-        <aside class="surah-panel">
-          <div class="panel-heading">
-            <div><p class="eyebrow">Выбери суру</p><h2 id="surah-panel-title">Суры 30-го джуза</h2></div>
-            <span id="surah-count">37 сур</span>
-          </div>
-          <div class="surah-list" id="surah-list"></div>
-        </aside>
-
-        <section class="player-card" aria-live="polite">
-          <div class="now-playing">
-            <div>
-              <p class="eyebrow">Сейчас играет</p>
-              <h2 id="surah-name">Ан-Наба</h2>
-              <p id="ayah-label">Аят 1 из 40 · сура 78</p>
-            </div>
-            <div class="arabic-name" id="surah-arabic" lang="ar" dir="rtl">النبأ</div>
-          </div>
-
-          <div class="ayah-number" aria-hidden="true"><span>آية</span><strong id="ayah-number">١</strong></div>
-          <audio id="audio" preload="metadata"></audio>
-
-          <div class="timeline">
-            <span id="elapsed">0:00</span>
-            <input id="seek" type="range" min="0" max="100" value="0" aria-label="Положение воспроизведения">
-            <span id="duration">0:00</span>
-          </div>
-
-          <div class="transport">
-            <button id="previous" class="round" aria-label="Предыдущий аят">←</button>
-            <button id="play" class="play" aria-label="Воспроизвести"><span id="play-icon">▶</span></button>
-            <button id="next" class="round" aria-label="Следующий аят">→</button>
-          </div>
-
-          <div class="player-options">
-            <label class="switch"><input id="autoplay" type="checkbox" checked><span></span> Следующий аят автоматически</label>
-            <label>Скорость
-              <select id="speed">
-                <option value="0.75">0,75×</option>
-                <option value="1" selected>1×</option>
-                <option value="1.25">1,25×</option>
-              </select>
-            </label>
-          </div>
-
-          <p class="status" id="status">Нажми ▶, чтобы начать слушать.</p>
-          <div class="ayah-picker-wrap">
-            <div class="picker-heading"><strong>Аяты суры</strong><span id="picker-summary">40 аятов</span></div>
-            <div class="ayah-picker" id="ayah-picker"></div>
-          </div>
-        </section>
-      </div>
+      <p class="setup-note" id="setup-note">После выбора джуза занятие идёт автоматически, без нажатия кнопок. Задания перемешаны между сурами.</p>
     </section>
 
-    <section class="guide">
-      <div><span>01</span><h3>Выбери джуз</h3><p>30-й, 29-й или 28-й.</p></div>
-      <div><span>02</span><h3>Открой суру</h3><p>Суры стоят в порядке Корана.</p></div>
-      <div><span>03</span><h3>Слушай подряд</h3><p>После аята включится следующий.</p></div>
+    <section class="loading-screen" id="loading-screen" hidden>
+      <div class="loader"></div><p class="eyebrow">Готовлю занятие</p><h2 id="loading-title">Загружаю точный текст аятов…</h2><p id="loading-copy">Это понадобится только при первом открытии джуза.</p><button class="secondary" id="cancel-loading">← Назад</button>
+    </section>
+
+    <section class="practice-screen" id="practice-screen" hidden aria-live="polite">
+      <div class="practice-head">
+        <button class="text-back" id="exit-practice">← К джузам</button>
+        <div><strong id="practice-title">30-й джуз</strong><span id="score-label">Верно 0 · Ошибки 0</span></div>
+      </div>
+      <div class="progress-row"><span id="progress-label">Задание 1 из 564</span><div><i id="progress-fill"></i></div></div>
+
+      <article class="practice-card">
+        <div class="question-top"><p class="phase" id="phase-label">Слушай подсказку</p><span id="surah-label">Сура 78 · Ан-Наба</span></div>
+        <div class="cue-card">
+          <small id="cue-kind">Айман читает предыдущий аят</small>
+          <p id="cue-arabic" lang="ar" dir="rtl"></p>
+          <p id="cue-russian"></p>
+        </div>
+        <audio id="audio" preload="metadata"></audio>
+        <div class="cue-actions"><button class="primary" id="play-cue">▶ Прослушать подсказку</button><button class="secondary" id="repeat-cue">↻ Повторить</button></div>
+
+        <div class="answer-panel" id="answer-panel" hidden>
+          <div class="mic-dot">🎙</div>
+          <div><strong>Продолжи следующим аятом</strong><p id="voice-status">Нажми «Говорить» и прочитай продолжение.</p></div>
+          <button class="mic-button" id="speak-button">Говорить</button>
+        </div>
+
+        <div class="heard" id="heard-panel" hidden><small>Сайт услышал:</small><p id="heard-text" lang="ar" dir="rtl"></p></div>
+        <div class="feedback" id="feedback" hidden></div>
+        <div class="manual" id="manual-panel" hidden><p>Если Safari не передал речь, продиктуй аят через микрофон арабской клавиатуры или проверь себя по ответу.</p><textarea id="manual-answer" lang="ar" dir="rtl" placeholder="Можно продиктовать или написать аят"></textarea><button class="secondary" id="check-manual">Проверить написанное</button></div>
+
+        <div class="answer-reveal" id="answer-reveal" hidden><small>Правильное продолжение · аят <span id="answer-number"></span></small><p id="answer-arabic" lang="ar" dir="rtl"></p></div>
+        <div class="bottom-actions"><button class="secondary" id="show-answer">Показать ответ</button><button class="primary" id="next-question" hidden>Следующее задание →</button></div>
+      </article>
+    </section>
+
+    <section class="finish-screen" id="finish-screen" hidden>
+      <div class="finish-mark">✓</div><p class="eyebrow">Занятие завершено</p><h2>МашаАллах!</h2><p id="finish-copy"></p><div class="finish-actions"><button class="secondary" id="repeat-juz">Пройти ещё раз</button><button class="primary" id="choose-juz">Выбрать другой джуз</button></div>
     </section>
   </main>
 
   <footer>
-    <p>Чтение: шейх Айман Сувейд, 64 kbps. Записи аятов предоставляются сервисом <a href="https://everyayah.com/recitations_ayat.html" target="_blank" rel="noopener">EveryAyah</a>.</p>
-    <p>Для прослушивания новых аятов нужен интернет. Уже открытые записи браузер может сохранить временно.</p>
+    <p>Текст аятов: <a href="https://alquran.cloud/api" target="_blank" rel="noopener">Al Quran Cloud</a>. Чтение: шейх Айман Сувейд, записи <a href="https://everyayah.com/recitations_ayat.html" target="_blank" rel="noopener">EveryAyah</a>.</p>
+    <p>Для загрузки аятов и голосовой проверки нужен интернет. Микрофон полноценно работает на публичном HTTPS-сайте.</p>
   </footer>
-  <script src="app.js?v=1"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
