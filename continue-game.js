@@ -1,10 +1,10 @@
 // «Начни или продолжи аят»: приложение называет суру либо произносит один аят,
 // а пользователь читает первый либо следующий аят. Ответ проверяется без огласовок.
 const CONTINUE_SURAHS = JUZ30_SURAHS
-  .filter((surah) => surah.number >= 98 && surah.number <= 114)
+  .filter((surah) => surah.number >= 97 && surah.number <= 114)
   .sort((a, b) => b.number - a.number);
 const AYMAN_SOWAID_AUDIO_BASE = "audio/ayman-suwaid/";
-const CONTINUE_SESSION_KEY = "kalimat-continue-session-v7";
+const CONTINUE_SESSION_KEY = "kalimat-continue-session-v8";
 const CONTINUE_SILENCE_GRACE_MS = 5000;
 
 function shuffleContinueItems(items) {

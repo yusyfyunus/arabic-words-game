@@ -111,6 +111,16 @@ const LESSONS = [{
     ["صَالِحَاتٌ", "Благие дела"], // Аят 7
     ["جَزَاءٌ", "Воздаяние, награда"], ["خَشِيَ", "Бояться, благоговеть"] // Аят 8
   ].map(([arabic, russian]) => ({ arabic, russian }))
+}, {
+  id: "lesson-11",
+  title: "Урок 11 · Аль-Кадр",
+  words: [
+    ["أَنْزَلَ", "Ниспосылать"], // Аят 1
+    ["أَدْرَى", "Давать знать, разъяснять"], // Аят 2
+    ["أَلْفٌ", "Тысяча"], // Аят 3
+    ["تَنَزَّلَ", "Нисходить, спускаться"], ["مَلَائِكَةٌ", "Ангелы"], // Аят 4
+    ["مَطْلَعٌ", "Наступление рассвета"] // Аят 5
+  ].map(([arabic, russian]) => ({ arabic, russian }))
 }];
 
 const WORDS = LESSONS.flatMap((lesson) => lesson.words);
@@ -480,11 +490,12 @@ function renderResult() {
 function reset(nextMode = mode, nextScope = scope) {
   mode = nextMode;
   scope = nextScope;
+  const orderedQuranLesson = ["lesson-10", "lesson-11"].includes(scope);
   deck = scope === "hard"
     ? []
     : mode === "translate"
-      ? buildTranslateDeck(activeWords(), scope === "lesson-10")
-      : scope === "lesson-10" ? [...activeWords()] : shuffle(activeWords());
+      ? buildTranslateDeck(activeWords(), orderedQuranLesson)
+      : orderedQuranLesson ? [...activeWords()] : shuffle(activeWords());
   index = 0; score = 0; streak = 0; answered = false; started = false; finished = false; mistakes = [];
   $("mode-translate").classList.toggle("active", mode === "translate");
   $("mode-spell").classList.toggle("active", mode === "spell");
@@ -498,6 +509,7 @@ function reset(nextMode = mode, nextScope = scope) {
   $("scope-lesson8").classList.toggle("active", scope === "lesson-8");
   $("scope-lesson9").classList.toggle("active", scope === "lesson-9");
   $("scope-lesson10").classList.toggle("active", scope === "lesson-10");
+  $("scope-lesson11").classList.toggle("active", scope === "lesson-11");
   $("scope-all").classList.toggle("active", scope === "all");
   $("scope-hard").classList.toggle("active", scope === "hard");
   $("mode-translate").parentElement.hidden = scope === "hard";
@@ -526,6 +538,7 @@ $("scope-lesson7").addEventListener("click", () => scope !== "lesson-7" && reset
 $("scope-lesson8").addEventListener("click", () => scope !== "lesson-8" && reset(mode, "lesson-8"));
 $("scope-lesson9").addEventListener("click", () => scope !== "lesson-9" && reset(mode, "lesson-9"));
 $("scope-lesson10").addEventListener("click", () => scope !== "lesson-10" && reset(mode, "lesson-10"));
+$("scope-lesson11").addEventListener("click", () => scope !== "lesson-11" && reset(mode, "lesson-11"));
 $("scope-all").addEventListener("click", () => scope !== "all" && reset(mode, "all"));
 $("scope-hard").addEventListener("click", () => scope !== "hard" && reset(mode, "hard"));
 $("restart").addEventListener("click", () => reset());
