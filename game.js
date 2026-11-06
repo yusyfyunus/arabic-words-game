@@ -121,6 +121,30 @@ const LESSONS = [{
     ["تَنَزَّلَ", "Нисходить, спускаться"], ["مَلَائِكَةٌ", "Ангелы"], // Аят 4
     ["مَطْلَعٌ", "Наступление рассвета"] // Аят 5
   ].map(([arabic, russian]) => ({ arabic, russian }))
+}, {
+  id: "lesson-12",
+  title: "Урок 12 · Аль-Аляк",
+  words: [
+    ["اِقْرَأْ", "Читай"], // Аят 1
+    ["عَلَقٌ", "Сгусток"], // Аят 2
+    ["أَكْرَمُ", "Самый щедрый"], // Аят 3
+    ["قَلَمٌ", "Перо"], // Аят 4
+    ["عَلَّمَ", "Обучать"], // Аят 5
+    ["طَغَى", "Переходить границы"], // Аят 6
+    ["اِسْتَغْنَى", "Считать себя не нуждающимся"], // Аят 7
+    ["رُجْعَى", "Возвращение"], // Аят 8
+    ["نَهَى", "Запрещать"], // Аят 9
+    ["عَبْدٌ", "Раб Аллаха"], // Аят 10
+    ["هُدًى", "Верный путь, руководство"], // Аят 11
+    ["تَقْوَى", "Богобоязненность"], // Аят 12
+    ["تَوَلَّى", "Отвернуться"], // Аят 13
+    ["يَرَى", "Видит"], // Аят 14
+    ["اِنْتَهَى", "Переставать, прекращать"], // Аят 15
+    ["نَاصِيَةٌ", "Чуб, передняя часть головы"], // Аят 16
+    ["نَادٍ", "Собрание, сообщники"], // Аят 17
+    ["زَبَانِيَةٌ", "Стражи Ада"], // Аят 18
+    ["اِسْجُدْ", "Совершай земной поклон"] // Аят 19
+  ].map(([arabic, russian]) => ({ arabic, russian }))
 }];
 
 const WORDS = LESSONS.flatMap((lesson) => lesson.words);
@@ -490,7 +514,7 @@ function renderResult() {
 function reset(nextMode = mode, nextScope = scope) {
   mode = nextMode;
   scope = nextScope;
-  const orderedQuranLesson = ["lesson-10", "lesson-11"].includes(scope);
+  const orderedQuranLesson = ["lesson-10", "lesson-11", "lesson-12"].includes(scope);
   deck = scope === "hard"
     ? []
     : mode === "translate"
@@ -510,6 +534,7 @@ function reset(nextMode = mode, nextScope = scope) {
   $("scope-lesson9").classList.toggle("active", scope === "lesson-9");
   $("scope-lesson10").classList.toggle("active", scope === "lesson-10");
   $("scope-lesson11").classList.toggle("active", scope === "lesson-11");
+  $("scope-lesson12").classList.toggle("active", scope === "lesson-12");
   $("scope-all").classList.toggle("active", scope === "all");
   $("scope-hard").classList.toggle("active", scope === "hard");
   $("mode-translate").parentElement.hidden = scope === "hard";
@@ -539,6 +564,7 @@ $("scope-lesson8").addEventListener("click", () => scope !== "lesson-8" && reset
 $("scope-lesson9").addEventListener("click", () => scope !== "lesson-9" && reset(mode, "lesson-9"));
 $("scope-lesson10").addEventListener("click", () => scope !== "lesson-10" && reset(mode, "lesson-10"));
 $("scope-lesson11").addEventListener("click", () => scope !== "lesson-11" && reset(mode, "lesson-11"));
+$("scope-lesson12").addEventListener("click", () => scope !== "lesson-12" && reset(mode, "lesson-12"));
 $("scope-all").addEventListener("click", () => scope !== "all" && reset(mode, "all"));
 $("scope-hard").addEventListener("click", () => scope !== "hard" && reset(mode, "hard"));
 $("restart").addEventListener("click", () => reset());
