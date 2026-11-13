@@ -1,11 +1,12 @@
 // «Начни или продолжи аят»: приложение называет суру либо произносит один аят,
 // а пользователь читает первый либо следующий аят. Ответ проверяется без огласовок.
 const CONTINUE_SURAHS = JUZ30_SURAHS
-  .filter((surah) => surah.number >= 96 && surah.number <= 114)
+  .filter((surah) => surah.number >= 95 && surah.number <= 114)
   .sort((a, b) => b.number - a.number);
 const AYMAN_SOWAID_AUDIO_BASE = "audio/ayman-suwaid/";
 const CONTINUE_SESSION_KEY = "kalimat-continue-session-v9";
 const CONTINUE_SILENCE_GRACE_MS = 5000;
+const CONTINUE_NATIVE_SILENCE_GRACE_MS = 1600;
 
 function shuffleContinueItems(items) {
   const result = [...items];
@@ -163,6 +164,7 @@ function speakContinueText(text, language, rate, onEnd) {
 
 function stopContinueAudio() {
   continueState.audioToken += 1;
+  if (window.__hifzNativeAudio?.stop) window.__hifzNativeAudio.stop();
   if (continueState.audioSource) {
     continueState.audioSource.onended = null;
     try { continueState.audioSource.stop(0); } catch (error) { /* источник уже остановлен */ }
@@ -291,9 +293,19 @@ function playContinueAyah(ayah, onEnd, onError) {
   stopContinueAudio();
   setContinueAudioSession("playback");
   const token = continueState.audioToken;
+  const url = continueAyahAudioUrl(ayah.surahNumber, ayah.number);
+  if (window.__hifzNativeAudio?.play) {
+    window.__hifzNativeAudio.play(url)
+      .then(() => {
+        if (token === continueState.audioToken) onEnd?.();
+      })
+      .catch(() => {
+        if (token === continueState.audioToken) onError?.();
+      });
+    return true;
+  }
   const context = ensureContinueAudioContext();
   if (!context) return playContinueAyahElement(ayah, token, onEnd, onError);
-  const url = continueAyahAudioUrl(ayah.surahNumber, ayah.number);
   let failed = false;
   const fail = () => {
     if (failed || token !== continueState.audioToken) return;
@@ -379,6 +391,12 @@ function playContinuePraise(onEnd) {
     onEnd?.();
   };
   continueState.feedbackTimer = setTimeout(finish, 3800);
+  if (window.__hifzNativeAudio?.play) {
+    window.__hifzNativeAudio.play("audio/feedback/mashaallah.wav")
+      .then(finish)
+      .catch(finish);
+    return;
+  }
   const context = ensureContinueAudioContext();
   const token = continueState.audioToken;
   if (!context) {
@@ -401,6 +419,20 @@ function playContinuePraise(onEnd) {
       source.start(0);
     })
     .catch(finish);
+}
+
+function playContinueCorrectAnswer(current, onEnd) {
+  const status = continueEl("continue-voice-status");
+  if (status) status.textContent = "Ответ неверный. Сейчас прозвучит правильный аят Аймана Сувайда.";
+  // После остановки микрофона даём нативной аудиосессии освободить вход,
+  // иначе iPhone иногда проглатывает начало правильного ответа.
+  const delay = window.__hifzNativeAudio?.play ? 280 : 80;
+  setTimeout(() => {
+    playContinuePrompt(
+      { surahNumber: current.surahNumber, number: current.nextNumber },
+      onEnd
+    );
+  }, delay);
 }
 
 function prepareContinueMicrophone() {
@@ -467,7 +499,7 @@ function releaseContinueMicrophone() {
 
 function beginContinueListeningAfterPrompt(automatic = true) {
   const status = continueEl("continue-voice-status");
-  const iosDelay = isContinueIOS() ? 4200 : 500;
+  const iosDelay = window.__hifzNativeAudio?.play ? 150 : isContinueIOS() ? 4200 : 500;
   if (status) {
     status.textContent = isContinueIOS()
       ? "Запись закончилась. Готовлю микрофон Safari — начинай читать, когда появится «Слушаю…»."
@@ -479,7 +511,7 @@ function beginContinueListeningAfterPrompt(automatic = true) {
         showContinueManualFallback("Safari не получил доступ к микрофону сайта. Продиктуй аят через микрофон арабской клавиатуры iPhone и нажми «Проверить».");
         return;
       }
-      setTimeout(() => startContinueRecognition(automatic), isContinueIOS() ? 500 : 100);
+      setTimeout(() => startContinueRecognition(automatic), window.__hifzNativeAudio?.play ? 50 : isContinueIOS() ? 500 : 100);
     });
   }, iosDelay);
 }
@@ -809,7 +841,7 @@ function handleContinueTranscript(finalText, generation, automatic) {
   clearTimeout(continueState.speechTimer);
   continueState.speechTimer = setTimeout(
     () => evaluateContinueRecitation(collectContinueTranscript()),
-    CONTINUE_SILENCE_GRACE_MS
+    window.__hifzNativeSpeechInstalled ? CONTINUE_NATIVE_SILENCE_GRACE_MS : CONTINUE_SILENCE_GRACE_MS
   );
 }
 
@@ -833,6 +865,8 @@ function launchContinueRecognition(generation, automatic, onStarted) {
   // Safari на iPhone нередко возвращает услышанный текст как interim и
   // завершает короткий сеанс без отдельного final-события.
   recognition.interimResults = true;
+  const expectedItem = continueState.deck[continueState.index];
+  recognition.contextualStrings = expectedItem?.nextArabic ? [expectedItem.nextArabic] : [];
   // На iPhone continuous=true работает нестабильно: Safari может зависнуть и
   // больше не прислать onresult. Короткие сеансы автоматически перезапускаются
   // через onend, а доступ к микрофону остаётся выданным на всё занятие.
@@ -1051,7 +1085,7 @@ function startContinueRecognitionBeforeCue(current, automatic = true, afterCue) 
     // WebKit на iPhone может перестать отдавать onresult, если распознавание
     // запустить сразу после аудио. Даём аудиосессии освободиться, затем подаём
     // короткий сигнал: именно после него начинается минутный ответ.
-    const recognitionCooldown = isContinueIOS() ? 4500 : 350;
+    const recognitionCooldown = window.__hifzNativeAudio?.play ? 150 : isContinueIOS() ? 4500 : 350;
     clearTimeout(continueState.recognitionCooldownTimer);
     continueState.recognitionCooldownTimer = setTimeout(() => {
       continueState.recognitionCooldownTimer = null;
@@ -1130,13 +1164,14 @@ function showContinueAnswer(correct, spoken, similarity) {
       if (continueState.autoAdvance) continueState.nextTimer = setTimeout(advanceContinueQuestion, 850);
     });
   } else if (continueState.autoAdvance) {
-    continueEl("continue-voice-status").textContent = "Сейчас Айман Сувайд прочитает правильный аят, затем начнётся следующий вопрос.";
-    playContinuePrompt(
-      { surahNumber: current.surahNumber, number: current.nextNumber },
+    playContinueCorrectAnswer(
+      current,
       () => { continueState.nextTimer = setTimeout(advanceContinueQuestion, 900); }
     );
   } else {
-    playContinuePrompt({ surahNumber: current.surahNumber, number: current.nextNumber });
+    playContinueCorrectAnswer(current, () => {
+      continueEl("continue-voice-status").textContent = "Это правильный аят. Повтори его и переходи к следующему заданию.";
+    });
   }
 }
 

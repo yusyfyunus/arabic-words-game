@@ -6,6 +6,100 @@
   font-display: swap;
 }
 
+/* Вариант 1 — «Тихая библиотека» */
+.portal-shell.library-theme {
+  padding-bottom: 74px;
+  background:
+    radial-gradient(circle at 8% 18%, rgba(209,107,61,.10), transparent 24%),
+    radial-gradient(circle at 94% 68%, rgba(20,95,76,.10), transparent 27%),
+    #f7f1e6;
+}
+.library-theme .portal-header { border-color: #e6dac7; }
+.library-theme .portal-hero { margin: 58px auto 30px; }
+.library-theme .portal-hero .eyebrow { color: #d16b3d; }
+.library-theme .portal-hero h1 { color: #173c32; }
+.library-theme .portal-hero h1 em { color: #17654f; }
+.library-theme .portal-hero > p:last-child { color: #6e7d77; }
+.library-progress-card {
+  position: relative;
+  z-index: 2;
+  width: min(1000px, 100%);
+  min-height: 82px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  margin: 0 auto 18px;
+  padding: 16px 20px;
+  border: 1px solid #e9ddca;
+  border-radius: 20px;
+  background: #fffaf1;
+  color: #173c32;
+  box-shadow: 0 12px 34px rgba(45,56,42,.07);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.library-progress-card:hover { transform: translateY(-2px); box-shadow: 0 18px 42px rgba(45,56,42,.11); }
+.library-progress-icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #e8f1e8;
+  color: #145f4c;
+  font-size: 22px;
+  font-weight: 850;
+}
+.library-progress-copy { display: grid; gap: 4px; }
+.library-progress-copy strong { font-family: Georgia, "Times New Roman", serif; font-size: 19px; font-weight: 600; }
+.library-progress-copy small { color: #74827c; font-size: 12px; line-height: 1.4; }
+.library-progress-action { color: #145f4c; font-size: 12px; font-weight: 850; }
+.library-theme .project-choice-grid { gap: 16px; }
+.library-theme .project-choice {
+  min-height: 280px;
+  padding: 28px;
+  border-color: #e8ddcc;
+  border-radius: 22px;
+  background: #fffaf1;
+  box-shadow: 0 14px 38px rgba(45,56,42,.075);
+}
+.library-theme .ayahs-choice { background: #0e5b47; }
+.library-theme .full-juz-choice { background: #9b482f; }
+.library-theme .continue-choice { background: #ead9bd; }
+.library-theme .listen-choice { background: #fffaf1; }
+.library-theme .recitation-choice { background: #173f36; }
+
+@media (max-width: 760px) {
+  .portal-shell.library-theme { padding: 0 14px 42px; }
+  .library-theme .portal-header { height: 68px; }
+  .library-theme .portal-hero { margin: 35px auto 24px; text-align: left; }
+  .library-theme .portal-hero h1 { font-size: clamp(39px, 11vw, 48px); line-height: 1.02; }
+  .library-theme .portal-hero h1 br { display: initial; }
+  .library-theme .portal-hero > p:last-child { margin: 16px 0 0; font-size: 14px; line-height: 1.5; }
+  .library-progress-card { min-height: 76px; gap: 11px; margin-bottom: 13px; padding: 13px; border-radius: 18px; }
+  .library-progress-icon { width: 42px; height: 42px; border-radius: 13px; }
+  .library-progress-copy strong { font-size: 16px; }
+  .library-progress-copy small { font-size: 10px; }
+  .library-progress-action { font-size: 0; }
+  .library-progress-action::after { content: "→"; font-size: 18px; }
+  .library-theme .project-choice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
+  .library-theme .project-choice { min-height: 214px; padding: 17px 15px; border-radius: 20px; }
+  .library-theme .project-choice::after { right: -96px; bottom: -120px; }
+  .library-theme .project-number { top: 15px; right: 15px; font-size: 14px; }
+  .library-theme .project-arabic { margin-bottom: 18px; font-size: 38px; }
+  .library-theme .project-choice small { max-width: 88%; font-size: 8px; line-height: 1.35; }
+  .library-theme .project-choice strong { font-size: 22px; line-height: 1.07; }
+  .library-theme .project-choice p { display: none; }
+  .library-theme .project-choice i { position: absolute; left: 15px; bottom: 16px; max-width: calc(100% - 30px); font-size: 10px; }
+}
+
+@media (max-width: 370px) {
+  .library-theme .project-choice-grid { grid-template-columns: 1fr; }
+  .library-theme .project-choice { min-height: 198px; }
+}
+
 :root {
   --ink: #17332b;
   --forest: #0f5b46;

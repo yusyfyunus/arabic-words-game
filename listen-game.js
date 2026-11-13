@@ -1,6 +1,6 @@
 // «Скажи перевод»: Айман Сувайд читает аят, затем ученица произносит перевод.
 const LISTEN_SURAHS = JUZ30_SURAHS
-  .filter((surah) => surah.number >= 96 && surah.number <= 114)
+  .filter((surah) => surah.number >= 95 && surah.number <= 114)
   .sort((a, b) => b.number - a.number);
 
 const LISTEN_ITEMS = LISTEN_SURAHS.flatMap((surah) => surah.ayahs.map((ayah) => ({
@@ -79,6 +79,8 @@ function unlockListenAudio() {
 
 function stopListenAudio() {
   listenState.audioToken += 1;
+  if (window.__hifzNativeAudio?.stop) window.__hifzNativeAudio.stop();
+  if (window.__hifzNativeTTS?.stop) window.__hifzNativeTTS.stop();
   if (listenState.audioSource) {
     listenState.audioSource.onended = null;
     try { listenState.audioSource.stop(0); } catch (error) { /* источник уже остановлен */ }
@@ -141,9 +143,19 @@ function playListenAyah(item, onEnd, onError) {
   stopListenAudio();
   setListenAudioSession("playback");
   const token = listenState.audioToken;
+  const url = listenAudioUrl(item);
+  if (window.__hifzNativeAudio?.play) {
+    window.__hifzNativeAudio.play(url)
+      .then(() => {
+        if (token === listenState.audioToken) onEnd?.();
+      })
+      .catch(() => {
+        if (token === listenState.audioToken) onError?.();
+      });
+    return;
+  }
   const context = ensureListenAudioContext();
   if (!context) return playListenAudioElement(item, token, onEnd, onError);
-  const url = listenAudioUrl(item);
   let failed = false;
   const fail = () => {
     if (failed || token !== listenState.audioToken) return;
@@ -348,6 +360,12 @@ function playListenFeedback(correct, text, onEnd) {
   listenState.feedbackTimer = setTimeout(finish, 3800);
 
   if (correct) {
+    if (window.__hifzNativeAudio?.play) {
+      window.__hifzNativeAudio.play("audio/feedback/mashaallah.wav")
+        .then(finish)
+        .catch(finish);
+      return;
+    }
     const context = ensureListenAudioContext();
     const token = listenState.audioToken;
     if (context) {
@@ -369,6 +387,13 @@ function playListenFeedback(correct, text, onEnd) {
         .catch(() => finish());
       return;
     }
+  }
+
+  if (!correct && window.__hifzNativeTTS?.speak) {
+    window.__hifzNativeTTS.speak(text, "ru-RU")
+      .then(finish)
+      .catch(finish);
+    return;
   }
 
   // Между сеансами распознавания на iPhone не запускаем speechSynthesis:
@@ -441,8 +466,8 @@ function finishListenAnswer(correct, transcript = "") {
     playListenFeedback(true, "Ма ша Аллах", moveOn);
   } else {
     setListenStatus(
-      isListenIOS() ? "Правильный перевод" : "Повтори перевод",
-      isListenIOS() ? "Правильный вариант показан на экране." : "Сейчас прозвучит правильный вариант."
+      "Правильный перевод",
+      "Сейчас приложение произнесёт правильный вариант."
     );
     playListenFeedback(false, item.russian, moveOn);
   }
@@ -477,11 +502,13 @@ function startListenRecognition(token) {
     return;
   }
   const generation = listenState.recognitionGeneration;
+  const item = listenState.deck[listenState.index];
   setListenAudioSession("play-and-record");
   const recognition = new Recognition();
   listenState.recognition = recognition;
   recognition.lang = "ru-RU";
   recognition.interimResults = true;
+  recognition.contextualStrings = item?.russian ? [item.russian] : [];
   // На iPhone continuous=true часто зависает после первого короткого ответа.
   // Safari работает короткими сеансами, которые автоматически перезапускаются.
   recognition.continuous = !isListenIOS();
@@ -634,7 +661,8 @@ function playListenCurrent() {
   playListenAyah(item, () => {
     if (token !== listenState.token) return;
     setListenStatus("Аят закончен", isListenIOS() ? "Safari освобождает звук. Начинай отвечать, когда появится «Микрофон слушает»." : "Сейчас включится микрофон.");
-    listenState.timer = setTimeout(() => beginListenAnswer(item, token), isListenIOS() ? 3500 : 450);
+    const microphoneDelay = window.__hifzNativeAudio?.play ? 150 : isListenIOS() ? 3500 : 450;
+    listenState.timer = setTimeout(() => beginListenAnswer(item, token), microphoneDelay);
   }, () => {
     if (token !== listenState.token) return;
     setListenStatus("Запись аята недоступна", "Нажми «Повторить» или перейди к следующему аяту.");

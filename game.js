@@ -145,6 +145,19 @@ const LESSONS = [{
     ["زَبَانِيَةٌ", "Стражи Ада"], // Аят 18
     ["اِسْجُدْ", "Совершай земной поклон"] // Аят 19
   ].map(([arabic, russian]) => ({ arabic, russian }))
+}, {
+  id: "lesson-13",
+  title: "Урок 13 · Ат-Тин",
+  words: [
+    ["التِّينُ", "Смоковница, инжир"], // Аят 1
+    ["طُورٌ", "Гора Синай"], // Аят 2
+    ["الْأَمِينُ", "Безопасный"], // Аят 3
+    ["تَقْوِيمٌ", "Совершенный вид, наилучший облик"], // Аят 4
+    ["أَسْفَلُ سَافِلِينَ", "Самый низкий уровень"], // Аят 5
+    ["غَيْرُ مَمْنُونٍ", "Нескончаемый, непрерывный"], // Аят 6
+    ["الدِّينُ", "Воздаяние, Судный день"], // Аят 7
+    ["أَحْكَمُ الْحَاكِمِينَ", "Лучший и мудрейший Судья"] // Аят 8
+  ].map(([arabic, russian]) => ({ arabic, russian }))
 }];
 
 const WORDS = LESSONS.flatMap((lesson) => lesson.words);
@@ -514,7 +527,7 @@ function renderResult() {
 function reset(nextMode = mode, nextScope = scope) {
   mode = nextMode;
   scope = nextScope;
-  const orderedQuranLesson = ["lesson-10", "lesson-11", "lesson-12"].includes(scope);
+  const orderedQuranLesson = ["lesson-10", "lesson-11", "lesson-12", "lesson-13"].includes(scope);
   deck = scope === "hard"
     ? []
     : mode === "translate"
@@ -535,6 +548,7 @@ function reset(nextMode = mode, nextScope = scope) {
   $("scope-lesson10").classList.toggle("active", scope === "lesson-10");
   $("scope-lesson11").classList.toggle("active", scope === "lesson-11");
   $("scope-lesson12").classList.toggle("active", scope === "lesson-12");
+  $("scope-lesson13").classList.toggle("active", scope === "lesson-13");
   $("scope-all").classList.toggle("active", scope === "all");
   $("scope-hard").classList.toggle("active", scope === "hard");
   $("mode-translate").parentElement.hidden = scope === "hard";
@@ -565,6 +579,7 @@ $("scope-lesson9").addEventListener("click", () => scope !== "lesson-9" && reset
 $("scope-lesson10").addEventListener("click", () => scope !== "lesson-10" && reset(mode, "lesson-10"));
 $("scope-lesson11").addEventListener("click", () => scope !== "lesson-11" && reset(mode, "lesson-11"));
 $("scope-lesson12").addEventListener("click", () => scope !== "lesson-12" && reset(mode, "lesson-12"));
+$("scope-lesson13").addEventListener("click", () => scope !== "lesson-13" && reset(mode, "lesson-13"));
 $("scope-all").addEventListener("click", () => scope !== "all" && reset(mode, "all"));
 $("scope-hard").addEventListener("click", () => scope !== "hard" && reset(mode, "hard"));
 $("restart").addEventListener("click", () => reset());

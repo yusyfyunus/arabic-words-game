@@ -2,6 +2,7 @@ const portalViews = {
   home: document.getElementById("portal-home"),
   words: document.getElementById("words-app"),
   ayahs: document.getElementById("ayah-app"),
+  tafsir: document.getElementById("tafsir-app"),
   daily: document.getElementById("daily-app"),
   continue: document.getElementById("continue-app"),
   listen: document.getElementById("listen-app")
@@ -59,7 +60,7 @@ const allAyahs = JUZ30_SURAHS.flatMap((surah) => surah.ayahs.map((ayah) => {
 }));
 
 const SURAH_FACT_SURAHS = JUZ30_SURAHS
-  .filter((surah) => surah.number >= 96 && surah.number <= 114)
+  .filter((surah) => surah.number >= 95 && surah.number <= 114)
   .sort((a, b) => b.number - a.number);
 
 const ayahElement = (id) => document.getElementById(id);
